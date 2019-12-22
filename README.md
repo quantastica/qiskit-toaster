@@ -2,6 +2,9 @@
 
 Allows running Qiskit code on Qubit Toaster - a high performance quantum circuit simulator.
 
+More goodies at [https://quantastica.com](https://quantastica.com)
+
+
 # Install
 
 ```
