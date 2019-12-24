@@ -22,6 +22,8 @@ import json
 import tempfile
 import requests
 
+from quantastica.qconvert import qobj_to_toaster
+
 from qiskit.providers import BaseJob, JobStatus, JobError
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
@@ -120,6 +122,8 @@ class ToasterJob(BaseJob):
     def _convert_qobj(qobj, destinationfn):
         if os.path.exists(destinationfn):
             os.remove(destinationfn)
+
+        """
         CONVERTER_URL = "https://quantum-circuit.com/api/convert"
         qobj_json = json.dumps(qobj.to_dict())
         data = {'input'  : qobj_json, 
@@ -131,13 +135,16 @@ class ToasterJob(BaseJob):
                 f.write(r.text)
         else:
             raise RuntimeWarning("Conversion-API error - url: %s , status: %s"%(CONVERTER_URL,str(r.status_code)))
-
+        """
+        converted = qobj_to_toaster(qobj, { "all_experiments": False })
+        with open(destinationfn, "w") as outfile:
+            json.dump(converted, outfile)
 
     def _run_with_qtoaster(self):
         tmpjsonfilename = tempfile.mktemp()
         qobj_dict = self._qobj.to_dict()
         shots = qobj_dict['config']['shots']
-        self._convert_qobj(self._qobj,tmpjsonfilename)
+        self._convert_qobj(qobj_dict, tmpjsonfilename)
 
         args = [
             self._toasterpath,
