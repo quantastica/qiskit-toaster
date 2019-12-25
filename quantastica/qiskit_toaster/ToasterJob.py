@@ -123,20 +123,8 @@ class ToasterJob(BaseJob):
         if os.path.exists(destinationfn):
             os.remove(destinationfn)
 
-        """
-        CONVERTER_URL = "https://quantum-circuit.com/api/convert"
-        qobj_json = json.dumps(qobj.to_dict())
-        data = {'input'  : qobj_json, 
-                'source' : 'qobj', 
-                'dest'   : 'toaster'}
-        r = requests.post(url = CONVERTER_URL, data = data)
-        if r.status_code == 200:
-            with open(destinationfn, 'w') as f:
-                f.write(r.text)
-        else:
-            raise RuntimeWarning("Conversion-API error - url: %s , status: %s"%(CONVERTER_URL,str(r.status_code)))
-        """
         converted = qobj_to_toaster(qobj, { "all_experiments": False })
+
         with open(destinationfn, "w") as outfile:
             json.dump(converted, outfile)
 
