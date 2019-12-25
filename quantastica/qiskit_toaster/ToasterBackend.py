@@ -73,13 +73,7 @@ class ToasterBackend(BaseBackend):
         self._local_random = np.random.RandomState()
         self._sample_measure = False
         self._chop_threshold = 15  # chop to 10^-15
-        self._toasterpath = toasterpath or os.getenv('TOASTERPATH')
-        if self._toasterpath is None:
-            raise ValueError("toasterpath not specified and environment variable TOASTERPATH not found")
-        elif not os.access(self._toasterpath, os.F_OK|os.X_OK) :
-            raise FileExistsError(
-                "Executable specified by toasterpath does not exist or is not executable\r\n" \
-                "    Path: "+self._toasterpath)
+        self._toasterpath = toasterpath or os.getenv('TOASTERPATH') or "qubit-toaster"
 
     #@profile
     def run(self, qobj):

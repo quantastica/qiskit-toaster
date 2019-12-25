@@ -47,10 +47,6 @@ class ToasterJob(BaseJob):
         self._future = None
         self._toasterpath = toasterpath;
         self._getstates = getstates
-        if not os.access(self._toasterpath, os.F_OK|os.X_OK) :
-            raise FileExistsError(
-                "Executable specified by toasterpath does not exist or is not executable\r\n" \
-                "    Path: "+self._toasterpath)
 
     def submit(self):
         if self._future is not None:
