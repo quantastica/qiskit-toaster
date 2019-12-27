@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class ToasterJob(BaseJob):
-    _MINQTOASTERVERSION = '0.9.7'
+    _MINQTOASTERVERSION = '0.9.8'
     
     if sys.platform in ['darwin', 'win32']:
         _executor = futures.ThreadPoolExecutor()
@@ -114,25 +114,15 @@ class ToasterJob(BaseJob):
             ret[nicekey] = counts[key];
         return ret
 
-    @staticmethod
-    def _convert_qobj(qobj, destinationfn):
-        if os.path.exists(destinationfn):
-            os.remove(destinationfn)
-
-        converted = qobj_to_toaster(qobj, { "all_experiments": False })
-
-        with open(destinationfn, "w") as outfile:
-            json.dump(converted, outfile)
-
     def _run_with_qtoaster(self):
-        tmpjsonfilename = tempfile.mktemp()
         qobj_dict = self._qobj.to_dict()
         shots = qobj_dict['config']['shots']
-        self._convert_qobj(qobj_dict, tmpjsonfilename)
+        converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
+        convertedstr = json.dumps(converted)
 
         args = [
             self._toasterpath,
-            tmpjsonfilename,
+            "-",
             "-r",
             "measure_all",
             "%d"%shots
@@ -143,8 +133,11 @@ class ToasterJob(BaseJob):
 
         logger.info("Running q-toaster with following params:")
         logger.info(args)
-        proc = subprocess.run(args, stdout=subprocess.PIPE)
-        os.remove(tmpjsonfilename)
+        proc = subprocess.run(
+            args, 
+            input=convertedstr.encode(),
+            stdout=subprocess.PIPE )
+
         qtoasterjson = proc.stdout
 
         resultraw = json.loads(qtoasterjson)

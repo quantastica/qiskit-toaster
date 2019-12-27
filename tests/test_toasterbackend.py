@@ -30,7 +30,6 @@ class TestToasterBackend(unittest.TestCase):
         job = execute(qc, backend=backend, shots=256)
         job_result = job.result()
         counts = job_result.get_counts(qc)
-        print(counts)
         self.assertTrue( len(counts) >= 1)
         
 
