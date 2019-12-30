@@ -116,7 +116,11 @@ class ToasterJob(BaseJob):
 
     def _run_with_qtoaster(self):
         qobj_dict = self._qobj.to_dict()
-        shots = qobj_dict['config']['shots']
+        if self._getstates :
+            shots = 1
+        else:
+            shots = qobj_dict['config']['shots']
+
         converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
         convertedstr = json.dumps(converted)
 
