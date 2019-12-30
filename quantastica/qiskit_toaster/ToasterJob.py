@@ -14,13 +14,8 @@
 from concurrent import futures
 import logging
 import sys
-import functools
-import os
-import time
 import subprocess
 import json
-import tempfile
-import requests
 
 from quantastica.qconvert import qobj_to_toaster
 
@@ -34,10 +29,7 @@ logger = logging.getLogger(__name__)
 class ToasterJob(BaseJob):
     _MINQTOASTERVERSION = '0.9.8'
     
-    if sys.platform in ['darwin', 'win32']:
-        _executor = futures.ThreadPoolExecutor()
-    else:
-        _executor = futures.ProcessPoolExecutor()
+    _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, backend, job_id, qobj, toasterpath, 
                  getstates = False):
