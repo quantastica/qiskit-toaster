@@ -64,15 +64,6 @@ class ToasterBackend(BaseBackend):
             getstates = True
 
         self._getstates = getstates
-        self._configuration = configuration
-        self._number_of_qubits = None
-        self._number_of_cbits = None
-        self._statevector = None
-        self._results = {}
-        self._shots = {}
-        self._local_random = np.random.RandomState()
-        self._sample_measure = False
-        self._chop_threshold = 15  # chop to 10^-15
         self._toasterpath = toasterpath or os.getenv('TOASTERPATH') or "qubit-toaster"
 
     #@profile
