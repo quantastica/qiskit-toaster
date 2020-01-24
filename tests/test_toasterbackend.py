@@ -91,7 +91,6 @@ class TestToasterBackend(unittest.TestCase):
             qc,
             shots
         )
-        self.assertNotEqual(len(stats['counts']), len(stats_aer['counts']))
         self.assertTrue(stats['statevector'] is None)
         self.assertNotEqual(stats['totalcounts'], stats_aer['totalcounts'])
 

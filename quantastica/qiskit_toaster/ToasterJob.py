@@ -119,7 +119,7 @@ class ToasterJob(BaseJob):
             self._toasterpath,
             "-",
             "-r",
-            "measure_all",
+            "counts",
             "-s",
             "%d"%shots
         ]
