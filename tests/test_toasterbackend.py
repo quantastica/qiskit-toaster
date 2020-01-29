@@ -34,6 +34,7 @@ class TestToasterBackend(unittest.TestCase):
         )
         self.assertTrue( stats['statevector'] is None)
         self.assertEqual( stats['totalcounts'], shots)
+        self.assertEqual( len(stats['counts']), 4)
 
 
     def test_bell_state_vector(self):
