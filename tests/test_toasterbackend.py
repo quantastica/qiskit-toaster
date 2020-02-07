@@ -24,6 +24,18 @@ class TestToasterBackend(unittest.TestCase):
         self.assertEqual( len(stats['counts']), 2)
         self.assertEqual( stats['totalcounts'], shots)
 
+    def test_teleport_counts(self):
+        shots = 256
+        qc=TestToasterBackend.get_teleport_qc()
+        stats = TestToasterBackend.execute_and_get_stats(
+            ToasterBackend.ToasterBackend(),
+            qc,
+            shots
+        )
+        self.assertTrue( stats['statevector'] is None)
+        self.assertEqual( stats['totalcounts'], shots)
+        self.assertEqual( len(stats['counts']), 4)
+
 
     def test_bell_state_vector(self):
         """
@@ -80,8 +92,6 @@ class TestToasterBackend(unittest.TestCase):
             qc,
             shots
         )
-
-        self.assertNotEqual(len(stats['counts']), len(stats_aer['counts']))
         self.assertTrue(stats['statevector'] is None)
         self.assertNotEqual(stats['totalcounts'], stats_aer['totalcounts'])
 

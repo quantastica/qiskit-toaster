@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class ToasterJob(BaseJob):
-    _MINQTOASTERVERSION = '0.9.8'
+    _MINQTOASTERVERSION = '0.9.9'
     
     _executor = futures.ThreadPoolExecutor()
 
@@ -114,13 +114,13 @@ class ToasterJob(BaseJob):
             shots = qobj_dict['config']['shots']
 
         converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
-        convertedstr = json.dumps(converted)
 
         args = [
             self._toasterpath,
             "-",
             "-r",
-            "measure_all",
+            "counts",
+            "-s",
             "%d"%shots
         ]
         if self._getstates:
@@ -131,14 +131,13 @@ class ToasterJob(BaseJob):
         logger.info(args)
         proc = subprocess.run(
             args, 
-            input=convertedstr.encode(),
+            input=converted.encode(),
             stdout=subprocess.PIPE )
 
         qtoasterjson = proc.stdout
 
         resultraw = json.loads(qtoasterjson)
         logger.debug("Raw results from toaster:\r\n%s",resultraw)
-
         if isinstance(resultraw , dict) :
             rawversion = resultraw.get('qtoaster_version')
         else:
@@ -149,7 +148,6 @@ class ToasterJob(BaseJob):
                 "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"%(rawversion,self._MINQTOASTERVERSION))
 
         counts = self._convert_counts(resultraw['counts'])
-
         qobjid = qobj_dict['qobj_id']
         qobj_header = qobj_dict['header']
         exp_dict = qobj_dict['experiments'][0]
