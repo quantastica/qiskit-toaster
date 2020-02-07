@@ -60,7 +60,7 @@ class ToasterJob(BaseJob):
 
     def cancel(self):
         return
-        # return self._future.cancel()
+        #return self._future.cancel()
 
     def status(self):
 
@@ -74,7 +74,6 @@ class ToasterJob(BaseJob):
             _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
         else:
             _status = JobStatus.INITIALIZING
-
         return _status
 
     def backend(self):
@@ -160,9 +159,11 @@ class ToasterJob(BaseJob):
         if statevector is not None and len(statevector) > 0:
             data['statevector'] = statevector
 
+        backend_name = self._backend.name()
+
         self._result = {
             'success': True, 
-            'backend_name': qobj_header['backend_name'], 
+            'backend_name': backend_name, 
             'qobj_id': qobjid ,
             'backend_version': rawversion, 
             'header': qobj_header,
