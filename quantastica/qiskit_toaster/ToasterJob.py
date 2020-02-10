@@ -51,6 +51,7 @@ class ToasterJob(BaseJob):
     def wait(self, timeout=None):
         if self.status() in [JobStatus.RUNNING, JobStatus.QUEUED] :
             futures.wait([self._future], timeout)
+        if self._future is not None:
             if self._future.exception() :
                 raise self._future.exception()
 
