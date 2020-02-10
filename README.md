@@ -53,6 +53,9 @@ backend = ToasterBackend.get_backend("qasm_simulator")
 # backend = ToasterBackend.get_backend("statevector_simulator")
 
 job = execute(qc, backend=backend)
+# To speed things up a little bit qiskit's optimization can be disabled
+# by setting optimization_level to 0 like following:
+# job = execute(qc, backend=backend, optimization_level=0)
 job_result = job.result()
 
 print(job_result.get_counts(qc))
