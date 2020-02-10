@@ -9,7 +9,8 @@ import sys
 import logging
 import os
 
-class TestToasterBackend(unittest.TestCase):
+@unittest.skipUnless(os.getenv("SLOW")=="1","Skipping this test (environment variable SLOW must be set to 1)")
+class TestSpeed(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(format='%(levelname)s %(asctime)s - %(message)s', level=1)
         self.startTime = time.time()
@@ -18,11 +19,10 @@ class TestToasterBackend(unittest.TestCase):
         t = time.time() - self.startTime
         sys.stderr.write(' took %.3fs ... ' % (t))
     
-    @unittest.skipUnless(os.getenv("SLOW")=="1","Skipping this test (environment variable SLOW must be set to 1)")
     def test_qft25(self):
         logging.info("======= Starting our function =======")
         qc = self.get_qft25_qc()
-        stats = TestToasterBackend.execute_and_get_stats(
+        stats = self.execute_and_get_stats(
             ToasterBackend.ToasterBackend(),
             # Aer.get_backend("qasm_simulator"),
             qc,
