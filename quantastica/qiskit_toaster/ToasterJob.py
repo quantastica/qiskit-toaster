@@ -44,8 +44,9 @@ class ToasterJob(BaseJob):
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
-        logger.debug("submit...")
+        logger.debug("validating...")
         validate_qobj_against_schema(self._qobj)
+        logger.debug("submitting...")
         self._future = self._executor.submit(self._run_with_qtoaster)
 
     def wait(self, timeout=None):
@@ -102,10 +103,11 @@ class ToasterJob(BaseJob):
         for key in counts:
             nicekey = key.replace(' ','')
             nicekey = hex(int(nicekey,2))
-            ret[nicekey] = counts[key];
+            ret[nicekey] = counts[key]
         return ret
 
     def _run_with_qtoaster(self):
+        SEED_SIMULATOR_KEY = "seed_simulator"
         qobj_dict = self._qobj.to_dict()
         if self._getstates :
             shots = 1
@@ -125,7 +127,9 @@ class ToasterJob(BaseJob):
         if self._getstates:
             args.append("-r")
             args.append("state")
-
+        if SEED_SIMULATOR_KEY in qobj_dict['config']:
+            args.append("--seed")
+            args.append("%d"%qobj_dict['config'][SEED_SIMULATOR_KEY])
         logger.info("Running q-toaster with following params:")
         logger.info(args)
         proc = subprocess.run(
