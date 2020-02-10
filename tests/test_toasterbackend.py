@@ -95,7 +95,17 @@ class TestToasterBackend(unittest.TestCase):
         self.assertTrue(stats['statevector'] is None)
         self.assertNotEqual(stats['totalcounts'], stats_aer['totalcounts'])
 
-    
+    def test_multiple_jobs(self):
+        qc = self.get_bell_qc()
+        backend = ToasterBackend.ToasterBackend()
+        jobs = []
+        for i in range(1,50):
+            jobs.append(execute(qc,backend=backend,shots=1))
+        for job in jobs:
+            result = job.result()
+            counts = result.get_counts(qc)
+            self.assertEqual(len(counts), 1)
+
 
     @staticmethod
     def execute_and_get_stats(backend, qc, shots):
