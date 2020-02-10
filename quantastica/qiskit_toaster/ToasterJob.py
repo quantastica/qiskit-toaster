@@ -44,14 +44,13 @@ class ToasterJob(BaseJob):
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
-        logger.debug("validating...")
-        validate_qobj_against_schema(self._qobj)
         logger.debug("submitting...")
         self._future = self._executor.submit(self._run_with_qtoaster)
 
     def wait(self, timeout=None):
         if self.status() is JobStatus.RUNNING :
             futures.wait([self._future], timeout);
+        if self is not None :
             if self._future.exception() :
                 raise self._future.exception()
 
