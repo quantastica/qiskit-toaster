@@ -12,7 +12,10 @@ import os
 @unittest.skipUnless(os.getenv("SLOW")=="1","Skipping this test (environment variable SLOW must be set to 1)")
 class TestSpeed(unittest.TestCase):
     def setUp(self):
-        logging.basicConfig(format='%(levelname)s %(asctime)s - %(message)s', level=1)
+        logging.basicConfig(
+            format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
+            level=os.environ.get("LOGLEVEL", "CRITICAL"),
+        )
         self.startTime = time.time()
 
     def tearDown(self):

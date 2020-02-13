@@ -24,7 +24,7 @@ import os
 class TestQAOA(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(
-            format="%(levelname)s %(asctime)s - %(message)s",
+            format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
             level=os.environ.get("LOGLEVEL", "CRITICAL"),
         )
         self.startTime = time.time()
