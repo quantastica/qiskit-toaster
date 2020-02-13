@@ -4,6 +4,7 @@ from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QuantumCircuit, execute, Aer
 from numpy import pi
 
+
 class TestToasterBackend(unittest.TestCase):
     def setUp(self):
         pass
@@ -11,18 +12,15 @@ class TestToasterBackend(unittest.TestCase):
     def tearDown(self):
         pass
 
-
     def test_bell_counts(self):
         shots = 256
-        qc=TestToasterBackend.get_bell_qc()
+        qc = TestToasterBackend.get_bell_qc()
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(),
-            qc,
-            shots
+            ToasterBackend.ToasterBackend(), qc, shots
         )
-        self.assertTrue( stats['statevector'] is None)
-        self.assertEqual( len(stats['counts']), 2)
-        self.assertEqual( stats['totalcounts'], shots)
+        self.assertTrue(stats["statevector"] is None)
+        self.assertEqual(len(stats["counts"]), 2)
+        self.assertEqual(stats["totalcounts"], shots)
 
     def test_bell_counts_with_seed(self):
         shots = 1024
@@ -53,76 +51,84 @@ class TestToasterBackend(unittest.TestCase):
 
     def test_teleport_counts(self):
         shots = 256
-        qc=TestToasterBackend.get_teleport_qc()
+        qc = TestToasterBackend.get_teleport_qc()
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(),
-            qc,
-            shots
+            ToasterBackend.ToasterBackend(), qc, shots
         )
-        self.assertTrue( stats['statevector'] is None)
-        self.assertEqual( stats['totalcounts'], shots)
-        self.assertEqual( len(stats['counts']), 4)
-
+        self.assertTrue(stats["statevector"] is None)
+        self.assertEqual(stats["totalcounts"], shots)
+        self.assertEqual(len(stats["counts"]), 4)
 
     def test_bell_state_vector(self):
         """
-        This is test for statevector which means that 
+        This is test for statevector which means that
         even with shots > 1 it should execute only one shot
         """
         shots = 256
         qc = TestToasterBackend.get_bell_qc()
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(backend_name="statevector_simulator"),
+            ToasterBackend.ToasterBackend(
+                backend_name="statevector_simulator"
+            ),
             qc,
-            shots
+            shots,
         )
-        self.assertEqual( len(stats['statevector']), 4)
-        self.assertEqual( len(stats['counts']), 1)
-        self.assertEqual( stats['totalcounts'], 1)
+        self.assertEqual(len(stats["statevector"]), 4)
+        self.assertEqual(len(stats["counts"]), 1)
+        self.assertEqual(stats["totalcounts"], 1)
 
     def test_teleport_state_vector(self):
         """
-        This is test for statevector which means that 
+        This is test for statevector which means that
         even with shots > 1 it should execute only one shot
         """
         shots = 256
         qc = TestToasterBackend.get_teleport_qc()
 
-        """ 
-        Let's first run the aer simulation to get statevector 
+        """
+        Let's first run the aer simulation to get statevector
         and counts so we can compare those results against forest's
         """
         stats_aer = TestToasterBackend.execute_and_get_stats(
-            Aer.get_backend('statevector_simulator'),
-            qc,
-            shots
+            Aer.get_backend("statevector_simulator"), qc, shots
         )
-        """ 
-        Now execute forest backend 
+        """
+        Now execute forest backend
         """
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(backend_name="statevector_simulator"),
+            ToasterBackend.ToasterBackend(
+                backend_name="statevector_simulator"
+            ),
             qc,
-            shots
+            shots,
         )
 
-        self.assertEqual(len(stats['counts']), len(stats_aer['counts']))
-        self.assertEqual(len(stats['statevector']), len(stats_aer['statevector']))
-        self.assertEqual(stats['totalcounts'], stats_aer['totalcounts'])
+        self.assertEqual(len(stats["counts"]), len(stats_aer["counts"]))
+        self.assertEqual(
+            len(stats["statevector"]), len(stats_aer["statevector"])
+        )
+        self.assertEqual(stats["totalcounts"], stats_aer["totalcounts"])
 
-        """ 
-        Let's verify that tests are working as expected 
+        """
+        Let's verify that tests are working as expected
         by running fail case
         """
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(),
-            qc,
-            shots
+            ToasterBackend.ToasterBackend(), qc, shots
         )
-        self.assertTrue(stats['statevector'] is None)
-        self.assertNotEqual(stats['totalcounts'], stats_aer['totalcounts'])
+        self.assertTrue(stats["statevector"] is None)
+        self.assertNotEqual(stats["totalcounts"], stats_aer["totalcounts"])
 
-    
+    def test_multiple_jobs(self):
+        qc = self.get_bell_qc()
+        backend = ToasterBackend.ToasterBackend()
+        jobs = []
+        for i in range(1, 50):
+            jobs.append(execute(qc, backend=backend, shots=1))
+        for job in jobs:
+            result = job.result()
+            counts = result.get_counts(qc)
+            self.assertEqual(len(counts), 1)
 
     @staticmethod
     def execute_and_get_stats(backend, qc, shots, seed = None):
@@ -138,17 +144,17 @@ class TestToasterBackend(unittest.TestCase):
         except:
             state_vector = None
         ret = dict()
-        ret['counts'] = counts
-        ret['statevector'] = state_vector
-        ret['totalcounts'] = total_counts
+        ret["counts"] = counts
+        ret["statevector"] = state_vector
+        ret["totalcounts"] = total_counts
         return ret
 
     @staticmethod
     def get_bell_qc():
         qc = QuantumCircuit(name="Bell")
 
-        q = QuantumRegister(2, 'q')
-        c = ClassicalRegister(2, 'c')
+        q = QuantumRegister(2, "q")
+        c = ClassicalRegister(2, "c")
 
         qc.add_register(q)
         qc.add_register(c)
@@ -163,9 +169,9 @@ class TestToasterBackend(unittest.TestCase):
     def get_teleport_qc():
         qc = QuantumCircuit(name="Teleport")
 
-        q = QuantumRegister(3, 'q')
-        c0 = ClassicalRegister(1, 'c0')
-        c1 = ClassicalRegister(1, 'c1')
+        q = QuantumRegister(3, "q")
+        c0 = ClassicalRegister(1, "c0")
+        c1 = ClassicalRegister(1, "c1")
 
         qc.add_register(q)
         qc.add_register(c0)
@@ -182,5 +188,6 @@ class TestToasterBackend(unittest.TestCase):
         qc.z(q[2]).c_if(c0, 1)
         return qc
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -48,15 +48,15 @@ class ToasterJob(BaseJob):
         self._future = self._executor.submit(self._run_with_qtoaster)
 
     def wait(self, timeout=None):
-        if self.status() is JobStatus.RUNNING :
-            futures.wait([self._future], timeout);
-        if self is not None :
+        if self.status() in [JobStatus.RUNNING, JobStatus.QUEUED] :
+            futures.wait([self._future], timeout)
+        if self._future is not None:
             if self._future.exception() :
                 raise self._future.exception()
 
     def result(self, timeout=None):
         self.wait(timeout)
-        return Result.from_dict(self._result);
+        return Result.from_dict(self._result)
 
     def cancel(self):
         return
@@ -72,8 +72,8 @@ class ToasterJob(BaseJob):
             _status = JobStatus.CANCELLED
         elif self._future.done():
             _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
-        else:
-            _status = JobStatus.INITIALIZING
+        else: # future is in pending state
+            _status = JobStatus.QUEUED
         return _status
 
     def backend(self):
