@@ -22,6 +22,33 @@ class TestToasterBackend(unittest.TestCase):
         self.assertEqual(len(stats["counts"]), 2)
         self.assertEqual(stats["totalcounts"], shots)
 
+    def test_bell_counts_with_seed(self):
+        shots = 1024
+        qc=TestToasterBackend.get_bell_qc()
+        stats1 = TestToasterBackend.execute_and_get_stats(
+            ToasterBackend.ToasterBackend(),
+            qc,
+            shots,
+            seed = 1
+        )
+        stats2 = TestToasterBackend.execute_and_get_stats(
+            ToasterBackend.ToasterBackend(),
+            qc,
+            shots,
+            seed = 1
+        )
+        stats3 = TestToasterBackend.execute_and_get_stats(
+            ToasterBackend.ToasterBackend(),
+            qc,
+            shots,
+            seed = 2
+        )
+        self.assertTrue( stats1['statevector'] is None)
+        self.assertEqual( len(stats1['counts']), 2)
+        self.assertEqual( stats1['totalcounts'], shots)
+        self.assertEqual(stats1['counts'],stats2['counts'])
+        self.assertNotEqual(stats1['counts'],stats3['counts'])
+
     def test_teleport_counts(self):
         shots = 256
         qc = TestToasterBackend.get_teleport_qc()
@@ -104,8 +131,8 @@ class TestToasterBackend(unittest.TestCase):
             self.assertEqual(len(counts), 1)
 
     @staticmethod
-    def execute_and_get_stats(backend, qc, shots):
-        job = execute(qc, backend=backend, shots=shots)
+    def execute_and_get_stats(backend, qc, shots, seed = None):
+        job = execute(qc, backend=backend, shots=shots, seed_simulator = seed)
         job_result = job.result()
         counts = job_result.get_counts(qc)
         total_counts = 0
