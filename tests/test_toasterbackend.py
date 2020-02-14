@@ -1,8 +1,9 @@
 import unittest
-from quantastica.qiskit_toaster import ToasterBackend
+from quantastica.qiskit_toaster import ToasterBackend, ToasterStatevectorSimulator, ToasterProvider
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QuantumCircuit, execute, Aer
 from numpy import pi
+from quantastica.qiskit_toaster import Toaster
 
 
 class TestToasterBackend(unittest.TestCase):
@@ -16,7 +17,7 @@ class TestToasterBackend(unittest.TestCase):
         shots = 256
         qc = TestToasterBackend.get_bell_qc()
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(), qc, shots
+            Toaster.get_backend("ToasterAsmSimulator"), qc, shots
         )
         self.assertTrue(stats["statevector"] is None)
         self.assertEqual(len(stats["counts"]), 2)
