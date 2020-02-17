@@ -9,7 +9,8 @@ from qiskit.aqua.algorithms import QAOA
 from qiskit.aqua.components.optimizers import SPSA
 from qiskit.optimization.ising import docplex, max_cut
 from qiskit.optimization.ising.common import sample_most_likely
-from quantastica.qiskit_toaster import ToasterBackend
+from quantastica.qiskit_toaster import ToasterBackend, ToasterJob
+
 
 import time
 import sys
@@ -34,12 +35,16 @@ class TestQAOA(unittest.TestCase):
         sys.stderr.write(" took %.3fs ... " % (t))
 
     def test_qaoa(self):
-        print("Running AER test...")
-        aer_backend = BasicAer.get_backend("qasm_simulator")
-        aer_results = self.run_simulation(aer_backend)
         print("Running toaster test...")
         toaster_backend = ToasterBackend.get_backend("qasm_simulator")
         toaster_results = self.run_simulation(toaster_backend)
+        print("Convert time:",ToasterJob.ToasterJob._qconvert_time,"seconds")
+        print("Toaster time:",ToasterJob.ToasterJob._qtoaster_time,"seconds")
+        print("Run time:",ToasterJob.ToasterJob._run_time,"seconds")
+        print("ToasterJob executed",ToasterJob.ToasterJob._execution_count,"times")
+        print("Running AER test...")
+        aer_backend = BasicAer.get_backend("qasm_simulator")
+        aer_results = self.run_simulation(aer_backend)
         print("===== Calculations done =====")
         print("  ==== AER Results =====")
         print(aer_results)
@@ -117,10 +122,11 @@ class TestQAOA(unittest.TestCase):
         aqua_globals.random_seed = seed
 
         spsa = SPSA(max_trials=250)
-        qaoa = QAOA(qubit_op, spsa, p=5)
+        qaoa = QAOA(qubit_op, spsa, p=5, max_evals_grouped = 4)
 
         quantum_instance = QuantumInstance(
-            backend, shots=1024, seed_simulator=seed, seed_transpiler=seed
+            backend, shots=1024, seed_simulator=seed, seed_transpiler=seed,
+            optimization_level=0
         )
         result = qaoa.run(quantum_instance)
 

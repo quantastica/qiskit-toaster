@@ -1,12 +1,18 @@
+import logging
+import os
 import unittest
 from quantastica.qiskit_toaster import ToasterBackend
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QuantumCircuit, execute, Aer
-from numpy import pi
-
+from qiskit.compiler import transpile, assemble
+from math import pi
 
 class TestToasterBackend(unittest.TestCase):
     def setUp(self):
+        logging.basicConfig(
+            format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
+            level=os.environ.get("LOGLEVEL", "CRITICAL"),
+        )
         pass
 
     def tearDown(self):
@@ -129,6 +135,17 @@ class TestToasterBackend(unittest.TestCase):
             result = job.result()
             counts = result.get_counts(qc)
             self.assertEqual(len(counts), 1)
+
+    def test_multiple_experiments(self):
+        backend = ToasterBackend.ToasterBackend()
+        qc_list = [ self.get_bell_qc(), self.get_teleport_qc() ]
+        transpiled = transpile(qc_list, backend = backend)
+        qobjs = assemble(transpiled, backend=backend, shots=4096)
+        job_info = backend.run(qobjs)
+        bell_counts = job_info.result().get_counts("Bell")
+        tel_counts = job_info.result().get_counts("Teleport")
+        self.assertEqual(len(bell_counts),2)
+        self.assertEqual(len(tel_counts),4)
 
     @staticmethod
     def execute_and_get_stats(backend, qc, shots, seed = None):

@@ -16,6 +16,8 @@ import logging
 import sys
 import subprocess
 import json
+import time
+import copy
 
 from quantastica.qconvert import qobj_to_toaster
 
@@ -25,34 +27,149 @@ from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
 
+def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
+    ToasterJob._execution_count += 1
+    _t_start = time.time()
+    SEED_SIMULATOR_KEY = "seed_simulator"
+    if get_states :
+        shots = 1
+    else:
+        shots = qobj_dict['config']['shots']
+    args = [
+        toaster_path,
+        "-",
+        "-r",
+        "counts",
+        "-s",
+        "%d"%shots
+    ]
+    if get_states:
+        args.append("-r")
+        args.append("state")
+    seed = 0
+    if SEED_SIMULATOR_KEY in qobj_dict['config']:
+        seed = qobj_dict['config'][SEED_SIMULATOR_KEY]
+        args.append("--seed")
+        args.append("%d"%seed)
+    logger.info(args)
+    proc = subprocess.Popen(
+        args,
+        close_fds = False, 
+        restore_signals = False,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE )
+
+    _t_before_convert = time.time()
+    converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
+    _t_after_convert = time.time()
+    ToasterJob._qconvert_time += _t_after_convert - _t_before_convert
+
+    logger.info("Running q-toaster with following params:")
+    proc.stdin.write(converted.encode())
+    proc.stdin.close()
+    proc.wait()
+    qtoasterjson = proc.stdout.read()
+    proc.stdout.close()
+    resultraw = json.loads(qtoasterjson)
+    logger.debug("Raw results from toaster:\r\n%s",resultraw)
+    if isinstance(resultraw , dict) :
+        rawversion = resultraw.get('qtoaster_version')
+    else:
+        rawversion = "0.0.0"
+    ToasterJob._qtoaster_time += time.time() - _t_after_convert
+
+    if ToasterJob._check_qtoaster_version(rawversion) == False :
+        raise ValueError(
+            "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"%(rawversion,self._MINQTOASTERVERSION))
+
+    counts = ToasterJob._convert_counts(resultraw['counts'])
+    exp_dict = qobj_dict['experiments'][0]
+    exp_header = exp_dict['header']
+    expname = exp_header['name']
+    statevector = resultraw.get('statevector')
+    data = dict()
+    data['counts'] = counts;
+    if statevector is not None and len(statevector) > 0:
+        data['statevector'] = statevector
+
+    result = {
+                'success': True, 
+                'meas_level': 2, 
+                'shots': shots, 
+                'data': data, 
+                'header': exp_header, 
+                'status': 'DONE', 
+                'time_taken': resultraw['time_taken'], 
+                'name': expname, 
+                'seed_simulator': seed
+            }
+    logging.debug("toaster function done")
+    return result
 
 class ToasterJob(BaseJob):
     _MINQTOASTERVERSION = '0.9.9'
     
-    _executor = futures.ThreadPoolExecutor()
+    _executor = futures.ProcessPoolExecutor()
+    _qconvert_time = 0
+    _qtoaster_time = 0
+    _run_time = 0
+    _execution_count = 0
 
     def __init__(self, backend, job_id, qobj, toasterpath, 
                  getstates = False):
         super().__init__(backend, job_id)
         self._result = None
-        self._qobj = qobj
-        self._future = None
-        self._toasterpath = toasterpath;
+        self._qobj_dict = qobj.to_dict()
+        self._futures = []
+        self._toasterpath = toasterpath
         self._getstates = getstates
 
     def submit(self):
-        if self._future is not None:
+        if len(self._futures)>0:
             raise JobError("We have already submitted the job!")
+        self._t_submit = time.time()
 
         logger.debug("submitting...")
-        self._future = self._executor.submit(self._run_with_qtoaster)
+        all_exps = self._qobj_dict
+        for exp in all_exps["experiments"]:
+            single_exp = copy.deepcopy(all_exps)
+            single_exp["experiments"]=[exp]
+            self._futures.append(self._executor.submit(_run_with_qtoaster_static,
+                single_exp,
+                self._getstates,
+                self._toasterpath,
+                self._job_id)
+                )
 
     def wait(self, timeout=None):
         if self.status() in [JobStatus.RUNNING, JobStatus.QUEUED] :
-            futures.wait([self._future], timeout)
-        if self._future is not None:
-            if self._future.exception() :
-                raise self._future.exception()
+            futures.wait(self._futures, timeout)
+        if self._result is None and self.status() is JobStatus.DONE :
+            results = []
+            for f in self._futures:
+                results.append(f.result())
+            qobj_dict = self._qobj_dict
+            qobjid = qobj_dict['qobj_id']
+            qobj_header = qobj_dict['header']
+            # TODO: replace rawversion later
+            rawversion = "1.1.1"
+
+            self._result = {
+                'success': True, 
+                'backend_name': "Toaster", 
+                'qobj_id': qobjid ,
+                'backend_version': rawversion, 
+                'header': qobj_header,
+                'job_id': self._job_id, 
+                'results': results, 
+                'status': 'COMPLETED'
+            }
+            ToasterJob._run_time += time.time() - self._t_submit
+
+        if len(self._futures)>0:
+            for f in self._futures:
+                if f.exception() :
+                    raise f.exception()
 
     def result(self, timeout=None):
         self.wait(timeout)
@@ -64,16 +181,37 @@ class ToasterJob(BaseJob):
 
     def status(self):
 
-        if self._future is None:
+        if len(self._futures)==0 :
             _status = JobStatus.INITIALIZING
-        elif self._future.running():
-            _status = JobStatus.RUNNING
-        elif self._future.cancelled():
-            _status = JobStatus.CANCELLED
-        elif self._future.done():
-            _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
-        else: # future is in pending state
-            _status = JobStatus.QUEUED
+        else :
+            running = 0
+            done = 0
+            canceled = 0
+            error = 0
+            queued = 0
+            for f in self._futures:
+                if f.running():
+                    running += 1
+                elif f.cancelled():
+                    canceled += 1
+                elif f.done():
+                    if f.exception() is None:
+                        done += 1
+                    else:
+                        error += 1
+                else:
+                    queued += 1
+            
+            if error :
+                _status = JobStatus.ERROR
+            elif running :
+                _status = JobStatus.RUNNING
+            elif canceled :
+                _status = JobStatus.CANCELLED
+            elif done :
+                _status = JobStatus.DONE 
+            else: # future is in pending state
+                _status = JobStatus.QUEUED
         return _status
 
     def backend(self):
@@ -105,84 +243,4 @@ class ToasterJob(BaseJob):
             ret[nicekey] = counts[key]
         return ret
 
-    def _run_with_qtoaster(self):
-        SEED_SIMULATOR_KEY = "seed_simulator"
-        qobj_dict = self._qobj.to_dict()
-        if self._getstates :
-            shots = 1
-        else:
-            shots = qobj_dict['config']['shots']
 
-        converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
-
-        args = [
-            self._toasterpath,
-            "-",
-            "-r",
-            "counts",
-            "-s",
-            "%d"%shots
-        ]
-        if self._getstates:
-            args.append("-r")
-            args.append("state")
-        if SEED_SIMULATOR_KEY in qobj_dict['config']:
-            args.append("--seed")
-            args.append("%d"%qobj_dict['config'][SEED_SIMULATOR_KEY])
-        logger.info("Running q-toaster with following params:")
-        logger.info(args)
-        proc = subprocess.run(
-            args, 
-            input=converted.encode(),
-            stdout=subprocess.PIPE )
-
-        qtoasterjson = proc.stdout
-
-        resultraw = json.loads(qtoasterjson)
-        logger.debug("Raw results from toaster:\r\n%s",resultraw)
-        if isinstance(resultraw , dict) :
-            rawversion = resultraw.get('qtoaster_version')
-        else:
-            rawversion = "0.0.0"
-
-        if ToasterJob._check_qtoaster_version(rawversion) == False :
-            raise ValueError(
-                "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"%(rawversion,self._MINQTOASTERVERSION))
-
-        counts = self._convert_counts(resultraw['counts'])
-        qobjid = qobj_dict['qobj_id']
-        qobj_header = qobj_dict['header']
-        exp_dict = qobj_dict['experiments'][0]
-        exp_header = exp_dict['header']
-        expname = exp_header['name']
-        qubit_count = exp_dict['config']['n_qubits']
-        statevector = resultraw.get('statevector')
-        data = dict()
-        data['counts'] = counts;
-        if statevector is not None and len(statevector) > 0:
-            data['statevector'] = statevector
-
-        backend_name = self._backend.name()
-
-        self._result = {
-            'success': True, 
-            'backend_name': backend_name, 
-            'qobj_id': qobjid ,
-            'backend_version': rawversion, 
-            'header': qobj_header,
-            'job_id': self._job_id, 
-            'results': [
-                {
-                    'success': True, 
-                    'meas_level': 2, 
-                    'shots': shots, 
-                    'data': data, 
-                    'header': exp_header, 
-                    'status': 'DONE', 
-                    'time_taken': resultraw['time_taken'], 
-                    'name': expname, 
-                    'seed_simulator': 0
-                }
-                ], 
-            'status': 'COMPLETED'
-        }

@@ -1,5 +1,5 @@
 import unittest
-from quantastica.qiskit_toaster import ToasterBackend
+from quantastica.qiskit_toaster import ToasterBackend, ToasterJob
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QuantumCircuit, execute, Aer
 from numpy import pi
