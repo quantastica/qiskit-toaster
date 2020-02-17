@@ -78,7 +78,7 @@ class ToasterBackend(BaseBackend):
 
     @staticmethod
     def name():
-        return 'ToasterBackend'
+        return 'qubit_toaster'
 
 def get_backend(backend_name = None, toasterpath = None):
         return ToasterBackend(backend_name = backend_name, toasterpath = toasterpath)
