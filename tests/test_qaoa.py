@@ -9,7 +9,8 @@ from qiskit.aqua.algorithms import QAOA
 from qiskit.aqua.components.optimizers import SPSA
 from qiskit.optimization.ising import docplex, max_cut
 from qiskit.optimization.ising.common import sample_most_likely
-from quantastica.qiskit_toaster import ToasterBackend
+from quantastica.qiskit_toaster import ToasterBackend, ToasterJob
+
 
 import time
 import sys
@@ -50,6 +51,8 @@ class TestQAOA(unittest.TestCase):
                 aer_results["solution"], toaster_results["solution"]
             )
         )
+        print("Convert time:",ToasterJob.ToasterJob._qconvert_time,"seconds")
+        print("Toaster time:",ToasterJob.ToasterJob._qtoaster_time,"seconds")
 
     def run_simulation(self, backend):
         n = 4

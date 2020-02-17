@@ -16,6 +16,7 @@ import logging
 import sys
 import subprocess
 import json
+import time
 
 from quantastica.qconvert import qobj_to_toaster
 
@@ -30,7 +31,8 @@ class ToasterJob(BaseJob):
     _MINQTOASTERVERSION = '0.9.9'
     
     _executor = futures.ThreadPoolExecutor()
-
+    _qconvert_time = 0
+    _qtoaster_time = 0
     def __init__(self, backend, job_id, qobj, toasterpath, 
                  getstates = False):
         super().__init__(backend, job_id)
@@ -112,9 +114,10 @@ class ToasterJob(BaseJob):
             shots = 1
         else:
             shots = qobj_dict['config']['shots']
-
+        _t_before_convert = time.time()
         converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
-
+        _t_after_convert = time.time()
+        ToasterJob._qconvert_time += _t_after_convert - _t_before_convert
         args = [
             self._toasterpath,
             "-",
@@ -144,6 +147,7 @@ class ToasterJob(BaseJob):
             rawversion = resultraw.get('qtoaster_version')
         else:
             rawversion = "0.0.0"
+        ToasterJob._qtoaster_time += time.time() - _t_after_convert
 
         if ToasterJob._check_qtoaster_version(rawversion) == False :
             raise ValueError(
