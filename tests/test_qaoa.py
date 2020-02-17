@@ -38,12 +38,10 @@ class TestQAOA(unittest.TestCase):
         print("Running toaster test...")
         toaster_backend = ToasterBackend.get_backend("qasm_simulator")
         toaster_results = self.run_simulation(toaster_backend)
-        print(toaster_results)
         print("Convert time:",ToasterJob.ToasterJob._qconvert_time,"seconds")
         print("Toaster time:",ToasterJob.ToasterJob._qtoaster_time,"seconds")
         print("Run time:",ToasterJob.ToasterJob._run_time,"seconds")
         print("ToasterJob executed",ToasterJob.ToasterJob._execution_count,"times")
-        return
         print("Running AER test...")
         aer_backend = BasicAer.get_backend("qasm_simulator")
         aer_results = self.run_simulation(aer_backend)
@@ -124,10 +122,11 @@ class TestQAOA(unittest.TestCase):
         aqua_globals.random_seed = seed
 
         spsa = SPSA(max_trials=250)
-        qaoa = QAOA(qubit_op, spsa, p=5)
+        qaoa = QAOA(qubit_op, spsa, p=5, max_evals_grouped = 4)
 
         quantum_instance = QuantumInstance(
-            backend, shots=1024, seed_simulator=seed, seed_transpiler=seed
+            backend, shots=1024, seed_simulator=seed, seed_transpiler=seed,
+            optimization_level=0
         )
         result = qaoa.run(quantum_instance)
 

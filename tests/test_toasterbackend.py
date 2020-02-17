@@ -1,3 +1,5 @@
+import logging
+import os
 import unittest
 from quantastica.qiskit_toaster import ToasterBackend
 from qiskit import QuantumRegister, ClassicalRegister
@@ -7,6 +9,10 @@ from numpy import pi
 
 class TestToasterBackend(unittest.TestCase):
     def setUp(self):
+        logging.basicConfig(
+            format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
+            level=os.environ.get("LOGLEVEL", "CRITICAL"),
+        )
         pass
 
     def tearDown(self):

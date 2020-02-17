@@ -26,15 +26,101 @@ from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
 
+def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
+    ToasterJob._execution_count += 1
+    _t_start = time.time()
+    SEED_SIMULATOR_KEY = "seed_simulator"
+    if get_states :
+        shots = 1
+    else:
+        shots = qobj_dict['config']['shots']
+    _t_before_convert = time.time()
+    # print(json.dumps(qobj_dict))
+    converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
+    _t_after_convert = time.time()
+    ToasterJob._qconvert_time += _t_after_convert - _t_before_convert
+    args = [
+        toaster_path,
+        "-",
+        "-r",
+        "counts",
+        "-s",
+        "%d"%shots
+    ]
+    if get_states:
+        args.append("-r")
+        args.append("state")
+    if SEED_SIMULATOR_KEY in qobj_dict['config']:
+        args.append("--seed")
+        args.append("%d"%qobj_dict['config'][SEED_SIMULATOR_KEY])
+    logger.info("Running q-toaster with following params:")
+    logger.info(args)
+    proc = subprocess.run(
+        args, 
+        input=converted.encode(),
+        stdout=subprocess.PIPE )
+
+    qtoasterjson = proc.stdout
+
+    resultraw = json.loads(qtoasterjson)
+    logger.debug("Raw results from toaster:\r\n%s",resultraw)
+    if isinstance(resultraw , dict) :
+        rawversion = resultraw.get('qtoaster_version')
+    else:
+        rawversion = "0.0.0"
+    ToasterJob._qtoaster_time += time.time() - _t_after_convert
+
+    if ToasterJob._check_qtoaster_version(rawversion) == False :
+        raise ValueError(
+            "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"%(rawversion,self._MINQTOASTERVERSION))
+
+    counts = ToasterJob._convert_counts(resultraw['counts'])
+    qobjid = qobj_dict['qobj_id']
+    qobj_header = qobj_dict['header']
+    exp_dict = qobj_dict['experiments'][0]
+    exp_header = exp_dict['header']
+    expname = exp_header['name']
+    statevector = resultraw.get('statevector')
+    data = dict()
+    data['counts'] = counts;
+    if statevector is not None and len(statevector) > 0:
+        data['statevector'] = statevector
+
+    backend_name = "Backend name"
+
+    result = {
+        'success': True, 
+        'backend_name': backend_name, 
+        'qobj_id': qobjid ,
+        'backend_version': rawversion, 
+        'header': qobj_header,
+        'job_id': job_id, 
+        'results': [
+            {
+                'success': True, 
+                'meas_level': 2, 
+                'shots': shots, 
+                'data': data, 
+                'header': exp_header, 
+                'status': 'DONE', 
+                'time_taken': resultraw['time_taken'], 
+                'name': expname, 
+                'seed_simulator': 0
+            }
+            ], 
+        'status': 'COMPLETED'
+    }
+    return result
 
 class ToasterJob(BaseJob):
     _MINQTOASTERVERSION = '0.9.9'
     
-    _executor = futures.ThreadPoolExecutor()
+    _executor = futures.ProcessPoolExecutor()
     _qconvert_time = 0
     _qtoaster_time = 0
     _run_time = 0
     _execution_count = 0
+
     def __init__(self, backend, job_id, qobj, toasterpath, 
                  getstates = False):
         super().__init__(backend, job_id)
@@ -47,13 +133,24 @@ class ToasterJob(BaseJob):
     def submit(self):
         if self._future is not None:
             raise JobError("We have already submitted the job!")
+        self._t_submit = time.time()
 
         logger.debug("submitting...")
-        self._future = self._executor.submit(self._run_with_qtoaster)
+        print("Exp count:",len(self._qobj.to_dict()["experiments"]))
+        self._future = self._executor.submit(_run_with_qtoaster_static,
+            self._qobj.to_dict(),
+            self._getstates,
+            self._toasterpath,
+            self._job_id
+            )
 
     def wait(self, timeout=None):
         if self.status() in [JobStatus.RUNNING, JobStatus.QUEUED] :
             futures.wait([self._future], timeout)
+        if not self._result and self.status() is JobStatus.DONE :
+            self._result = self._future.result()
+            ToasterJob._run_time += time.time() - self._t_submit
+
         if self._future is not None:
             if self._future.exception() :
                 raise self._future.exception()
@@ -109,90 +206,4 @@ class ToasterJob(BaseJob):
             ret[nicekey] = counts[key]
         return ret
 
-    def _run_with_qtoaster(self):
-        ToasterJob._execution_count += 1
-        _t_start = time.time()
-        SEED_SIMULATOR_KEY = "seed_simulator"
-        qobj_dict = self._qobj.to_dict()
-        if self._getstates :
-            shots = 1
-        else:
-            shots = qobj_dict['config']['shots']
-        _t_before_convert = time.time()
-        # print(json.dumps(qobj_dict))
-        converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
-        _t_after_convert = time.time()
-        ToasterJob._qconvert_time += _t_after_convert - _t_before_convert
-        args = [
-            self._toasterpath,
-            "-",
-            "-r",
-            "counts",
-            "-s",
-            "%d"%shots
-        ]
-        if self._getstates:
-            args.append("-r")
-            args.append("state")
-        if SEED_SIMULATOR_KEY in qobj_dict['config']:
-            args.append("--seed")
-            args.append("%d"%qobj_dict['config'][SEED_SIMULATOR_KEY])
-        logger.info("Running q-toaster with following params:")
-        logger.info(args)
-        proc = subprocess.run(
-            args, 
-            input=converted.encode(),
-            stdout=subprocess.PIPE )
 
-        qtoasterjson = proc.stdout
-
-        resultraw = json.loads(qtoasterjson)
-        logger.debug("Raw results from toaster:\r\n%s",resultraw)
-        if isinstance(resultraw , dict) :
-            rawversion = resultraw.get('qtoaster_version')
-        else:
-            rawversion = "0.0.0"
-        ToasterJob._qtoaster_time += time.time() - _t_after_convert
-
-        if ToasterJob._check_qtoaster_version(rawversion) == False :
-            raise ValueError(
-                "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"%(rawversion,self._MINQTOASTERVERSION))
-
-        counts = self._convert_counts(resultraw['counts'])
-        qobjid = qobj_dict['qobj_id']
-        qobj_header = qobj_dict['header']
-        exp_dict = qobj_dict['experiments'][0]
-        exp_header = exp_dict['header']
-        expname = exp_header['name']
-        qubit_count = exp_dict['config']['n_qubits']
-        statevector = resultraw.get('statevector')
-        data = dict()
-        data['counts'] = counts;
-        if statevector is not None and len(statevector) > 0:
-            data['statevector'] = statevector
-
-        backend_name = self._backend.name()
-
-        self._result = {
-            'success': True, 
-            'backend_name': backend_name, 
-            'qobj_id': qobjid ,
-            'backend_version': rawversion, 
-            'header': qobj_header,
-            'job_id': self._job_id, 
-            'results': [
-                {
-                    'success': True, 
-                    'meas_level': 2, 
-                    'shots': shots, 
-                    'data': data, 
-                    'header': exp_header, 
-                    'status': 'DONE', 
-                    'time_taken': resultraw['time_taken'], 
-                    'name': expname, 
-                    'seed_simulator': 0
-                }
-                ], 
-            'status': 'COMPLETED'
-        }
-        ToasterJob._run_time += time.time() - _t_start
