@@ -33,6 +33,8 @@ class ToasterJob(BaseJob):
     _executor = futures.ThreadPoolExecutor()
     _qconvert_time = 0
     _qtoaster_time = 0
+    _run_time = 0
+    _execution_count = 0
     def __init__(self, backend, job_id, qobj, toasterpath, 
                  getstates = False):
         super().__init__(backend, job_id)
@@ -108,6 +110,8 @@ class ToasterJob(BaseJob):
         return ret
 
     def _run_with_qtoaster(self):
+        ToasterJob._execution_count += 1
+        _t_start = time.time()
         SEED_SIMULATOR_KEY = "seed_simulator"
         qobj_dict = self._qobj.to_dict()
         if self._getstates :
@@ -115,6 +119,7 @@ class ToasterJob(BaseJob):
         else:
             shots = qobj_dict['config']['shots']
         _t_before_convert = time.time()
+        # print(json.dumps(qobj_dict))
         converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
         _t_after_convert = time.time()
         ToasterJob._qconvert_time += _t_after_convert - _t_before_convert
@@ -190,3 +195,4 @@ class ToasterJob(BaseJob):
                 ], 
             'status': 'COMPLETED'
         }
+        ToasterJob._run_time += time.time() - _t_start
