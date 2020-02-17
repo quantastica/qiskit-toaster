@@ -35,10 +35,6 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
         shots = 1
     else:
         shots = qobj_dict['config']['shots']
-    _t_before_convert = time.time()
-    converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
-    _t_after_convert = time.time()
-    ToasterJob._qconvert_time += _t_after_convert - _t_before_convert
     args = [
         toaster_path,
         "-",
@@ -55,15 +51,25 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
         seed = qobj_dict['config'][SEED_SIMULATOR_KEY]
         args.append("--seed")
         args.append("%d"%seed)
-    logger.info("Running q-toaster with following params:")
     logger.info(args)
-    proc = subprocess.run(
-        args, 
-        input=converted.encode(),
+    proc = subprocess.Popen(
+        args,
+        close_fds = False, 
+        restore_signals = False,
+        stdin=subprocess.PIPE,
         stdout=subprocess.PIPE )
 
-    qtoasterjson = proc.stdout
+    _t_before_convert = time.time()
+    converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
+    _t_after_convert = time.time()
+    ToasterJob._qconvert_time += _t_after_convert - _t_before_convert
 
+    logger.info("Running q-toaster with following params:")
+    proc.stdin.write(converted.encode())
+    proc.stdin.close()
+    proc.wait()
+    qtoasterjson = proc.stdout.read()
+    proc.stdout.close()
     resultraw = json.loads(qtoasterjson)
     logger.debug("Raw results from toaster:\r\n%s",resultraw)
     if isinstance(resultraw , dict) :
@@ -97,7 +103,7 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
                 'name': expname, 
                 'seed_simulator': seed
             }
-
+    logging.debug("toaster function done")
     return result
 
 class ToasterJob(BaseJob):
@@ -115,7 +121,7 @@ class ToasterJob(BaseJob):
         self._result = None
         self._qobj_dict = qobj.to_dict()
         self._futures = []
-        self._toasterpath = toasterpath;
+        self._toasterpath = toasterpath
         self._getstates = getstates
 
     def submit(self):
