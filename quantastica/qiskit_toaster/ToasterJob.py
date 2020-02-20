@@ -28,8 +28,6 @@ from qiskit.result import Result
 logger = logging.getLogger(__name__)
 
 def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
-    ToasterJob._execution_count += 1
-    _t_start = time.time()
     SEED_SIMULATOR_KEY = "seed_simulator"
     if get_states :
         shots = 1
@@ -59,10 +57,7 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE )
 
-    _t_before_convert = time.time()
     converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
-    _t_after_convert = time.time()
-    ToasterJob._qconvert_time += _t_after_convert - _t_before_convert
 
     logger.info("Running q-toaster with following params:")
     proc.stdin.write(converted.encode())
@@ -76,7 +71,6 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
         rawversion = resultraw.get('qtoaster_version')
     else:
         rawversion = "0.0.0"
-    ToasterJob._qtoaster_time += time.time() - _t_after_convert
 
     if ToasterJob._check_qtoaster_version(rawversion) == False :
         raise ValueError(
@@ -101,19 +95,16 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
                 'status': 'DONE', 
                 'time_taken': resultraw['time_taken'], 
                 'name': expname, 
-                'seed_simulator': seed
+                'seed_simulator': seed,
+                'toaster_version' : rawversion
             }
-    logging.debug("toaster function done")
     return result
 
 class ToasterJob(BaseJob):
     _MINQTOASTERVERSION = '0.9.9'
     
     _executor = futures.ProcessPoolExecutor()
-    _qconvert_time = 0
-    _qtoaster_time = 0
     _run_time = 0
-    _execution_count = 0
 
     def __init__(self, backend, job_id, qobj, toasterpath, 
                  getstates = False):
@@ -151,8 +142,10 @@ class ToasterJob(BaseJob):
             qobj_dict = self._qobj_dict
             qobjid = qobj_dict['qobj_id']
             qobj_header = qobj_dict['header']
-            # TODO: replace rawversion later
-            rawversion = "1.1.1"
+            rawversion = "1.0.0"
+            if len(results):
+                if "toaster_version" in results[0]:
+                    rawversion = results[0]['toaster_version']
 
             self._result = {
                 'success': True, 
