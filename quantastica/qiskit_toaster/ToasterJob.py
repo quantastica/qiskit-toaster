@@ -1,6 +1,6 @@
 # This code is part of quantastica.qiskit_toaster
 #
-# (C) Copyright Quantastica 2019. 
+# (C) Copyright Quantastica 2019.
 # https://quantastica.com/
 #
 # This code is licensed under the Apache License, Version 2.0. You may
@@ -13,7 +13,6 @@
 
 from concurrent import futures
 import logging
-import sys
 import subprocess
 import json
 import time
@@ -22,7 +21,6 @@ import copy
 from quantastica.qconvert import qobj_to_toaster
 
 from qiskit.providers import BaseJob, JobStatus, JobError
-from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
@@ -52,7 +50,7 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
     logger.info(args)
     proc = subprocess.Popen(
         args,
-        close_fds = False, 
+        close_fds = False,
         restore_signals = False,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE )
@@ -74,7 +72,7 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
 
     if ToasterJob._check_qtoaster_version(rawversion) == False :
         raise ValueError(
-            "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"%(rawversion,self._MINQTOASTERVERSION))
+            "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"%(rawversion,ToasterJob._MINQTOASTERVERSION))
 
     counts = ToasterJob._convert_counts(resultraw['counts'])
     exp_dict = qobj_dict['experiments'][0]
@@ -87,14 +85,14 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
         data['statevector'] = statevector
 
     result = {
-                'success': True, 
-                'meas_level': 2, 
-                'shots': shots, 
-                'data': data, 
-                'header': exp_header, 
-                'status': 'DONE', 
-                'time_taken': resultraw['time_taken'], 
-                'name': expname, 
+                'success': True,
+                'meas_level': 2,
+                'shots': shots,
+                'data': data,
+                'header': exp_header,
+                'status': 'DONE',
+                'time_taken': resultraw['time_taken'],
+                'name': expname,
                 'seed_simulator': seed,
                 'toaster_version' : rawversion
             }
@@ -102,11 +100,11 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
 
 class ToasterJob(BaseJob):
     _MINQTOASTERVERSION = '0.9.9'
-    
+
     _executor = futures.ProcessPoolExecutor()
     _run_time = 0
 
-    def __init__(self, backend, job_id, qobj, toasterpath, 
+    def __init__(self, backend, job_id, qobj, toasterpath,
                  getstates = False):
         super().__init__(backend, job_id)
         self._result = None
@@ -148,13 +146,13 @@ class ToasterJob(BaseJob):
                     rawversion = results[0]['toaster_version']
 
             self._result = {
-                'success': True, 
-                'backend_name': "Toaster", 
+                'success': True,
+                'backend_name': "Toaster",
                 'qobj_id': qobjid ,
-                'backend_version': rawversion, 
+                'backend_version': rawversion,
                 'header': qobj_header,
-                'job_id': self._job_id, 
-                'results': results, 
+                'job_id': self._job_id,
+                'results': results,
                 'status': 'COMPLETED'
             }
             ToasterJob._run_time += time.time() - self._t_submit
@@ -194,7 +192,7 @@ class ToasterJob(BaseJob):
                         error += 1
                 else:
                     queued += 1
-            
+
             if error :
                 _status = JobStatus.ERROR
             elif running :
@@ -202,7 +200,7 @@ class ToasterJob(BaseJob):
             elif canceled :
                 _status = JobStatus.CANCELLED
             elif done :
-                _status = JobStatus.DONE 
+                _status = JobStatus.DONE
             else: # future is in pending state
                 _status = JobStatus.QUEUED
         return _status
@@ -210,7 +208,7 @@ class ToasterJob(BaseJob):
     def backend(self):
         """Return the instance of the backend used for this job."""
         return self._backend
-    
+
     @staticmethod
     def _qtoaster_version_to_int(versionstring):
         parts = versionstring.split(".")
@@ -235,5 +233,3 @@ class ToasterJob(BaseJob):
             nicekey = hex(int(nicekey,2))
             ret[nicekey] = counts[key]
         return ret
-
-

@@ -1,8 +1,7 @@
 import unittest
-from quantastica.qiskit_toaster import ToasterBackend, ToasterJob
-from qiskit import QuantumRegister, ClassicalRegister
-from qiskit import QuantumCircuit, execute, Aer
-from numpy import pi
+from quantastica.qiskit_toaster import ToasterBackend
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit, execute
 import numpy as np
 import time
 import sys
@@ -21,7 +20,7 @@ class TestSpeed(unittest.TestCase):
     def tearDown(self):
         t = time.time() - self.startTime
         sys.stderr.write(' took %.3fs ... ' % (t))
-    
+
     def test_qft25(self):
         logging.info("======= Starting our function =======")
         qc = self.get_qft25_qc()
