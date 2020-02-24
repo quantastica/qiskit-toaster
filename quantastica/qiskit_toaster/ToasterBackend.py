@@ -1,6 +1,6 @@
 # This code is part of quantastica.qiskit_toaster
 #
-# (C) Copyright Quantastica 2019. 
+# (C) Copyright Quantastica 2019.
 # https://quantastica.com/
 #
 # This code is licensed under the Apache License, Version 2.0. You may
@@ -12,14 +12,8 @@
 # that they have been altered from the originals.
 
 import uuid
-import logging
-import time
-from collections import Counter
-
-import numpy as np
 from quantastica.qiskit_toaster import ToasterJob
 from qiskit.providers import BaseBackend
-from qiskit.result import Result
 from qiskit.providers.models import BackendConfiguration
 import os
 
@@ -51,9 +45,9 @@ class ToasterBackend(BaseBackend):
                                              't'],
                              'gates': []}
 
-    def __init__(self, configuration=None, 
+    def __init__(self, configuration=None,
                 provider=None,
-                backend_name = None, 
+                backend_name = None,
                 toasterpath=None):
         configuration = configuration or BackendConfiguration.from_dict(
             self.DEFAULT_CONFIGURATION)
@@ -69,7 +63,7 @@ class ToasterBackend(BaseBackend):
     #@profile
     def run(self, qobj):
         job_id = str(uuid.uuid4())
-        job = ToasterJob.ToasterJob(self, job_id, qobj, 
+        job = ToasterJob.ToasterJob(self, job_id, qobj,
                                     self._toasterpath,
                                     getstates=self._getstates)
         job.submit()
