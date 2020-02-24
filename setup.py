@@ -23,7 +23,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="quantastica-qiskit-toaster",
-    version="0.9.17",
+    version="0.9.18",
     description="Qubit Toaster backend for Qiskit: run Qiskit code on Quantastica \"Qubit Toaster\" simulator",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -40,6 +40,6 @@ setup(
     namespace_packages=['quantastica'],
     packages=find_namespace_packages(),
     include_package_data=True,
-    install_requires=["qiskit", "numpy", "quantastica-qconvert>=0.9.12"],
+    install_requires=["qiskit", "numpy", "quantastica-qconvert>=0.9.15"],
     entry_points={},
 )
