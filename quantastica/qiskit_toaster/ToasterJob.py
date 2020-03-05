@@ -17,6 +17,9 @@ import subprocess
 import json
 import time
 import copy
+import urllib
+from urllib import request
+import socket
 
 from quantastica.qconvert import qobj_to_toaster
 
@@ -25,45 +28,74 @@ from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
 
+def fetch_last_response(timeout):
+    req = request.Request("http://localhost:8000/last")
+    while True:
+        try:
+            print("Sending request...")
+            response = request.urlopen(req,timeout=timeout)
+        except (    socket.timeout, 
+                    urllib.error.URLError ) :
+            time.sleep(0.2)
+            continue
+        else:
+            txt = response.read().decode('utf8')
+            break
+    
+    print(txt)
+    return txt
+
+def run_simulation_via_http(jsonstr, params):
+    timeout = 0.5
+    params['content-type']='application/json'
+    req = request.Request("http://localhost:8000",
+        data=jsonstr,
+        headers=params)
+    txt = ""
+    res = dict()
+    while True:
+        try:
+            response = request.urlopen(req, timeout=timeout)
+        except socket.timeout:
+            txt = fetch_last_response(timeout)
+        except urllib.error.URLError as e:
+            if isinstance(e.reason, ConnectionRefusedError):
+                print("Toaster not running... exiting...")
+                break
+            time.sleep(0.2)
+        except ConnectionResetError: 
+            time.sleep(0.2)
+        else:
+            txt = response.read().decode('utf8')
+            break
+    res = json.loads(txt)
+    return res
+
 def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
     SEED_SIMULATOR_KEY = "seed_simulator"
     if get_states :
         shots = 1
     else:
         shots = qobj_dict['config']['shots']
-    args = [
-        toaster_path,
-        "-",
-        "-r",
-        "counts",
-        "-s",
-        "%d"%shots
-    ]
+
+    params = dict()
+    params['return']="counts"
+    params['shots']="%d"%shots
+
     if get_states:
-        args.append("-r")
-        args.append("state")
+        params['return'] += ",statevector"
+
     seed = 0
     if SEED_SIMULATOR_KEY in qobj_dict['config']:
         seed = qobj_dict['config'][SEED_SIMULATOR_KEY]
-        args.append("--seed")
-        args.append("%d"%seed)
-    logger.info(args)
-    proc = subprocess.Popen(
-        args,
-        close_fds = False,
-        restore_signals = False,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE )
+        params['seed'] = seed
+
+        
+    logger.info(params)
 
     converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
 
-    logger.info("Running q-toaster with following params:")
-    proc.stdin.write(converted.encode())
-    proc.stdin.close()
-    proc.wait()
-    qtoasterjson = proc.stdout.read()
-    proc.stdout.close()
-    resultraw = json.loads(qtoasterjson)
+    resultraw = run_simulation_via_http(converted.encode('utf-8'),params)
     logger.debug("Raw results from toaster:\r\n%s",resultraw)
     if isinstance(resultraw , dict) :
         rawversion = resultraw.get('qtoaster_version')
@@ -80,7 +112,7 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
     expname = exp_header['name']
     statevector = resultraw.get('statevector')
     data = dict()
-    data['counts'] = counts;
+    data['counts'] = counts
     if statevector is not None and len(statevector) > 0:
         data['statevector'] = statevector
 
