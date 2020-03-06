@@ -28,47 +28,61 @@ from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
 
-def fetch_last_response(timeout):
-    req = request.Request("http://localhost:8000/last")
+def fetch_last_response(timeout,job_id):
+    req = request.Request("http://localhost:8000/last/%s"%job_id)
+    txt = None
     while True:
         try:
-            print("Sending request...")
+            print("Sending GET request...")
             response = request.urlopen(req,timeout=timeout)
+        except urllib.error.HTTPError as e:
+            # if we receive HTTP 400 here something went wrong
+            # and POST request should be repeated
+            print("HTTP code received:",e.code)
+            break
         except (    socket.timeout, 
-                    urllib.error.URLError ) :
+                    urllib.error.URLError ) as e:
             time.sleep(0.2)
             continue
         else:
             txt = response.read().decode('utf8')
             break
     
-    print(txt)
     return txt
 
-def run_simulation_via_http(jsonstr, params):
-    timeout = 0.5
+def run_simulation_via_http(jsonstr, params, job_id):
+    timeout = 20 #0.5
     params['content-type']='application/json'
     req = request.Request("http://localhost:8000",
         data=jsonstr,
         headers=params)
-    txt = ""
-    res = dict()
+    txt = None
+    res = None
     while True:
         try:
             response = request.urlopen(req, timeout=timeout)
-        except socket.timeout:
-            txt = fetch_last_response(timeout)
-        except urllib.error.URLError as e:
-            if isinstance(e.reason, ConnectionRefusedError):
-                print("Toaster not running... exiting...")
+        except socket.timeout as e:
+            txt = fetch_last_response(timeout,job_id)
+            if txt is None:
+                continue
+            else:    
                 break
+        except urllib.error.URLError as e:
+            # if isinstance(e.reason, ConnectionRefusedError):
+            #     print("Toaster not running... exiting...")
+            #     break
+            # print(e)
             time.sleep(0.2)
-        except ConnectionResetError: 
+        except ConnectionResetError as e: 
+            # print(e)
             time.sleep(0.2)
         else:
             txt = response.read().decode('utf8')
             break
-    res = json.loads(txt)
+    
+    if txt:
+        res = json.loads(txt)
+    # print("response:",job_id,res)
     return res
 
 def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
@@ -79,51 +93,56 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
         shots = qobj_dict['config']['shots']
 
     params = dict()
-    params['return']="counts"
-    params['shots']="%d"%shots
+    params['x-qtc-return']="counts"
+    params['x-qtc-shots']="%d"%shots
+    params['x-qtc-jobid']=job_id
 
     if get_states:
-        params['return'] += ",statevector"
+        params['x-qtc-return'] += ",statevector"
 
     seed = 0
     if SEED_SIMULATOR_KEY in qobj_dict['config']:
         seed = qobj_dict['config'][SEED_SIMULATOR_KEY]
-        params['seed'] = seed
+        params['x-qtc-seed'] = seed
 
         
     logger.info(params)
-
     converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
 
-    resultraw = run_simulation_via_http(converted.encode('utf-8'),params)
-    logger.debug("Raw results from toaster:\r\n%s",resultraw)
-    if isinstance(resultraw , dict) :
-        rawversion = resultraw.get('qtoaster_version')
-    else:
-        rawversion = "0.0.0"
+    resultraw = run_simulation_via_http(converted.encode('utf-8'),params, job_id)
 
-    if ToasterJob._check_qtoaster_version(rawversion) == False :
-        raise ValueError(
-            "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"%(rawversion,ToasterJob._MINQTOASTERVERSION))
-
-    counts = ToasterJob._convert_counts(resultraw['counts'])
+    success = resultraw != None
+    # print(success)
+    data = dict()
     exp_dict = qobj_dict['experiments'][0]
     exp_header = exp_dict['header']
     expname = exp_header['name']
-    statevector = resultraw.get('statevector')
-    data = dict()
-    data['counts'] = counts
-    if statevector is not None and len(statevector) > 0:
-        data['statevector'] = statevector
+    time_taken = 0
+    rawversion = "0.0.0"
+    if success:
+        logger.debug("Raw results from toaster:\r\n%s",resultraw)
+        if isinstance(resultraw , dict) :
+            rawversion = resultraw.get('qtoaster_version')
+
+        if ToasterJob._check_qtoaster_version(rawversion) == False :
+            raise ValueError(
+                "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"%(rawversion,ToasterJob._MINQTOASTERVERSION))
+
+        counts = ToasterJob._convert_counts(resultraw['counts'])
+        statevector = resultraw.get('statevector')
+        data['counts'] = counts
+        if statevector is not None and len(statevector) > 0:
+            data['statevector'] = statevector
+        time_taken = resultraw['time_taken']
 
     result = {
-                'success': True,
+                'success': success,
                 'meas_level': 2,
                 'shots': shots,
                 'data': data,
                 'header': exp_header,
                 'status': 'DONE',
-                'time_taken': resultraw['time_taken'],
+                'time_taken': time_taken,
                 'name': expname,
                 'seed_simulator': seed,
                 'toaster_version' : rawversion
@@ -133,7 +152,7 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
 class ToasterJob(BaseJob):
     _MINQTOASTERVERSION = '0.9.9'
 
-    _executor = futures.ProcessPoolExecutor()
+    _executor = futures.ThreadPoolExecutor(max_workers=2)
     _run_time = 0
 
     def __init__(self, backend, job_id, qobj, toasterpath,
