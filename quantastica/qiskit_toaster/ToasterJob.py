@@ -51,7 +51,7 @@ def fetch_last_response(timeout,job_id):
     return txt
 
 def run_simulation_via_http(jsonstr, params, job_id):
-    timeout = 20 #0.5
+    timeout = None
     params['content-type']='application/json'
     req = request.Request("http://localhost:8000",
         data=jsonstr,
