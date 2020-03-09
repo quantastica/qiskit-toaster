@@ -152,7 +152,7 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
 class ToasterJob(BaseJob):
     _MINQTOASTERVERSION = '0.9.9'
 
-    _executor = futures.ThreadPoolExecutor(max_workers=2)
+    _executor = futures.ProcessPoolExecutor(max_workers=2)
     _run_time = 0
 
     def __init__(self, backend, job_id, qobj, toasterpath,

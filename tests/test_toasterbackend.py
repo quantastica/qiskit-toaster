@@ -6,6 +6,8 @@ from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QuantumCircuit, execute, Aer
 from qiskit.compiler import transpile, assemble
 from math import pi
+import time
+import sys
 
 class TestToasterBackend(unittest.TestCase):
     def setUp(self):
@@ -13,9 +15,12 @@ class TestToasterBackend(unittest.TestCase):
             format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
             level=os.environ.get("LOGLEVEL", "CRITICAL"),
         )
+        self.startTime = time.time()
         pass
 
     def tearDown(self):
+        t = time.time() - self.startTime
+        sys.stderr.write(" took %.3fs ... " % (t))
         pass
 
     def test_bell_counts(self):

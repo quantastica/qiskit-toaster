@@ -54,11 +54,13 @@ class TestQAOA(unittest.TestCase):
         self.assertGreater( toaster_k, threshold )
 
     def run_simulation(self, backend):
+
+        seed = int(os.environ.get("SEED", "40598"))
+        n = int(os.environ.get("N", "4"))
         #
         # Random 3-regular graph with 12 nodes
         #
-        n      = int(os.environ.get("N", "4"))
-        graph = nx.random_regular_graph(3, n)
+        graph = nx.random_regular_graph(3, n,seed=seed)
         for e in graph.edges():
             graph[e[0]][e[1]]['weight'] = 1.0
 
@@ -82,10 +84,9 @@ class TestQAOA(unittest.TestCase):
         mdl.maximize(maxcut_func)
         qubit_op, offset = docplex.get_operator(mdl)
 
-        # Run quantum algorithm QAOA on qasm simulator
-        seed = int(os.environ.get("SEED", "40598"))
         aqua_globals.random_seed = seed
 
+        # Run quantum algorithm QAOA on qasm simulator
         spsa = SPSA(max_trials=250)
         qaoa = QAOA(qubit_op, spsa, p=5, max_evals_grouped = 4)
 
