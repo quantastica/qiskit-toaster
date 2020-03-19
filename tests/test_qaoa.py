@@ -23,6 +23,14 @@ import os
     "Skipping this test (environment variable SLOW must be set to 1)",
 )
 class TestQAOA(unittest.TestCase):
+    @staticmethod 
+    def toaster_backend(backend_name=None):
+        return ToasterBackend.get_backend(
+            backend_name=backend_name,
+            toaster_host=os.getenv("TOASTER_HOST","localhost"),
+            toaster_port=os.getenv("TOASTER_PORT","8001")
+        )
+
     def setUp(self):
         logging.basicConfig(
             format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
@@ -36,7 +44,7 @@ class TestQAOA(unittest.TestCase):
 
     def test_qaoa(self):
         print("Running toaster test...")
-        toaster_backend = ToasterBackend.get_backend("qasm_simulator")
+        toaster_backend = self.toaster_backend("qasm_simulator")
         toaster_results = self.run_simulation(toaster_backend)
         print("Run time:",ToasterJob.ToasterJob._run_time,"seconds")
         print("Running AER test...")
