@@ -28,8 +28,8 @@ from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
 
-def fetch_last_response(timeout,job_id):
-    req = request.Request("http://localhost:8000/pollresult/%s"%job_id)
+def fetch_last_response(toaster_url,timeout,job_id):
+    req = request.Request("%s/pollresult/%s"%(toaster_url,job_id))
     txt = None
     while True:
         try:
@@ -37,7 +37,7 @@ def fetch_last_response(timeout,job_id):
         except urllib.error.HTTPError as e:
             # if we receive HTTP 400 here something went wrong
             # and POST request should be repeated
-            print("HTTP code received:",e.code)
+            # print("HTTP code received:",e.code)
             break
         except (    socket.timeout, 
                     urllib.error.URLError ) as e:
@@ -49,10 +49,10 @@ def fetch_last_response(timeout,job_id):
     
     return txt
 
-def run_simulation_via_http(jsonstr, params, job_id):
+def run_simulation_via_http(toaster_url,jsonstr, params, job_id):
     timeout = None
     params['content-type']='application/json'
-    req = request.Request("http://localhost:8000",
+    req = request.Request(toaster_url,
         data=jsonstr,
         headers=params)
     txt = None
@@ -61,11 +61,19 @@ def run_simulation_via_http(jsonstr, params, job_id):
         try:
             response = request.urlopen(req, timeout=timeout)
         except socket.timeout as e:
-            txt = fetch_last_response(timeout,job_id)
+            txt = fetch_last_response(toaster_url, timeout,job_id)
             if txt is None:
                 continue
             else:    
                 break
+        except urllib.error.HTTPError as e:
+            # already submitted, lets fetch results
+            if e.code == 409:
+                txt = fetch_last_response(toaster_url, timeout,job_id)
+                if txt is None:
+                    continue
+                else:    
+                    break
         except urllib.error.URLError as e:
             # if isinstance(e.reason, ConnectionRefusedError):
             #     print("Toaster not running... exiting...")
@@ -73,6 +81,7 @@ def run_simulation_via_http(jsonstr, params, job_id):
             # print(e)
             time.sleep(0.2)
         except ConnectionResetError as e: 
+            # print(e)
             time.sleep(0.2)
         else:
             txt = response.read().decode('utf8')
@@ -82,7 +91,7 @@ def run_simulation_via_http(jsonstr, params, job_id):
         res = json.loads(txt)
     return res
 
-def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
+def _run_with_qtoaster_static(qobj_dict, get_states, toaster_url, job_id):
     SEED_SIMULATOR_KEY = "seed_simulator"
     if get_states :
         shots = 1
@@ -106,7 +115,11 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
     logger.info(params)
     converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
 
-    resultraw = run_simulation_via_http(converted.encode('utf-8'),params, job_id)
+    resultraw = run_simulation_via_http(
+            toaster_url,
+            converted.encode('utf-8'),
+            params, 
+            job_id,)
 
     success = resultraw != None
     # print(success)
@@ -152,13 +165,15 @@ class ToasterJob(BaseJob):
     _executor = futures.ProcessPoolExecutor(max_workers=2)
     _run_time = 0
 
-    def __init__(self, backend, job_id, qobj, toasterpath,
-                 getstates = False):
+    def __init__(self, backend, job_id, qobj, 
+                    toaster_host,
+                    toaster_port,
+                    getstates = False):
         super().__init__(backend, job_id)
+        self._toaster_url="http://%s:%d/"%(toaster_host,int(toaster_port))
         self._result = None
         self._qobj_dict = qobj.to_dict()
         self._futures = []
-        self._toasterpath = toasterpath
         self._getstates = getstates
 
     def submit(self):
@@ -177,7 +192,7 @@ class ToasterJob(BaseJob):
             self._futures.append(self._executor.submit(_run_with_qtoaster_static,
                 single_exp,
                 self._getstates,
-                self._toasterpath,
+                self._toaster_url,
                 exp_job_id)
                 )
 

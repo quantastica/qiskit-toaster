@@ -10,6 +10,13 @@ import time
 import sys
 
 class TestToasterBackend(unittest.TestCase):
+    @staticmethod 
+    def toaster_backend():
+        return ToasterBackend.get_backend(
+            toaster_host=os.getenv("TOASTER_HOST","localhost"),
+            toaster_port=os.getenv("TOASTER_PORT","8001")
+        )
+
     def setUp(self):
         logging.basicConfig(
             format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
@@ -27,7 +34,7 @@ class TestToasterBackend(unittest.TestCase):
         shots = 256
         qc = TestToasterBackend.get_bell_qc()
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(), qc, shots
+            self.toaster_backend(), qc, shots
         )
         self.assertTrue(stats["statevector"] is None)
         self.assertEqual(len(stats["counts"]), 2)
@@ -37,19 +44,19 @@ class TestToasterBackend(unittest.TestCase):
         shots = 1024
         qc=TestToasterBackend.get_bell_qc()
         stats1 = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(),
+            self.toaster_backend(),
             qc,
             shots,
             seed = 1
         )
         stats2 = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(),
+            self.toaster_backend(),
             qc,
             shots,
             seed = 1
         )
         stats3 = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(),
+            self.toaster_backend(),
             qc,
             shots,
             seed = 2
@@ -64,7 +71,7 @@ class TestToasterBackend(unittest.TestCase):
         shots = 256
         qc = TestToasterBackend.get_teleport_qc()
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(), qc, shots
+            self.toaster_backend(), qc, shots
         )
         self.assertTrue(stats["statevector"] is None)
         self.assertEqual(stats["totalcounts"], shots)
@@ -125,14 +132,14 @@ class TestToasterBackend(unittest.TestCase):
         by running fail case
         """
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(), qc, shots
+            self.toaster_backend(), qc, shots
         )
         self.assertTrue(stats["statevector"] is None)
         self.assertNotEqual(stats["totalcounts"], stats_aer["totalcounts"])
 
     def test_multiple_jobs(self):
         qc = self.get_bell_qc()
-        backend = ToasterBackend.ToasterBackend()
+        backend = self.toaster_backend()
         jobs = []
         for i in range(1, 50):
             jobs.append(execute(qc, backend=backend, shots=1))
@@ -142,7 +149,7 @@ class TestToasterBackend(unittest.TestCase):
             self.assertEqual(len(counts), 1)
 
     def test_multiple_experiments(self):
-        backend = ToasterBackend.ToasterBackend()
+        backend = self.toaster_backend()
         qc_list = [ self.get_bell_qc(), self.get_teleport_qc() ]
         transpiled = transpile(qc_list, backend = backend)
         qobjs = assemble(transpiled, backend=backend, shots=4096)

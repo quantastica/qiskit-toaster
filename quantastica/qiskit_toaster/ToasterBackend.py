@@ -49,7 +49,8 @@ class ToasterBackend(BaseBackend):
     def __init__(self, configuration=None,
                 provider=None,
                 backend_name = None,
-                toasterpath=None):
+                toaster_host = None,
+                toaster_port = None):
         configuration = configuration or BackendConfiguration.from_dict(
             self.DEFAULT_CONFIGURATION)
         super().__init__(configuration=configuration, provider=provider)
@@ -59,14 +60,16 @@ class ToasterBackend(BaseBackend):
             getstates = True
 
         self._getstates = getstates
-        self._toasterpath = toasterpath or os.getenv('TOASTERPATH') or "qubit-toaster"
+        self._toaster_port = int(toaster_port or 8000)
+        self._toaster_host = toaster_host or "127.0.0.1"
 
     #@profile
     def run(self, qobj):
         job_id = str(uuid.uuid4())
         job = ToasterJob.ToasterJob(self, job_id, qobj,
-                                    self._toasterpath,
-                                    getstates=self._getstates)
+                                    getstates=self._getstates,
+                                    toaster_host=self._toaster_host,
+                                    toaster_port=self._toaster_port)
         job.submit()
         return job
 
@@ -75,5 +78,9 @@ class ToasterBackend(BaseBackend):
     def name():
         return 'qubit_toaster'
 
-def get_backend(backend_name = None, toasterpath = None):
-        return ToasterBackend(backend_name = backend_name, toasterpath = toasterpath)
+def get_backend(backend_name = None,     
+                toaster_host = None,
+                toaster_port = None):
+        return ToasterBackend(backend_name = backend_name, 
+                            toaster_host=toaster_host,
+                            toaster_port=toaster_port)
