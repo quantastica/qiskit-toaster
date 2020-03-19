@@ -11,8 +11,9 @@ import sys
 
 class TestToasterBackend(unittest.TestCase):
     @staticmethod 
-    def toaster_backend():
+    def toaster_backend(backend_name=None):
         return ToasterBackend.get_backend(
+            backend_name=backend_name,
             toaster_host=os.getenv("TOASTER_HOST","localhost"),
             toaster_port=os.getenv("TOASTER_PORT","8001")
         )
@@ -85,7 +86,7 @@ class TestToasterBackend(unittest.TestCase):
         shots = 256
         qc = TestToasterBackend.get_bell_qc()
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(
+            self.toaster_backend(
                 backend_name="statevector_simulator"
             ),
             qc,
@@ -114,7 +115,7 @@ class TestToasterBackend(unittest.TestCase):
         Now execute forest backend
         """
         stats = TestToasterBackend.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(
+            self.toaster_backend(
                 backend_name="statevector_simulator"
             ),
             qc,

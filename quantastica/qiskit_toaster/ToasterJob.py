@@ -52,7 +52,7 @@ def fetch_last_response(toaster_url,timeout,job_id):
 def run_simulation_via_http(toaster_url,jsonstr, params, job_id):
     timeout = None
     params['content-type']='application/json'
-    req = request.Request(toaster_url,
+    req = request.Request(toaster_url+"/submit",
         data=jsonstr,
         headers=params)
     txt = None
@@ -170,7 +170,7 @@ class ToasterJob(BaseJob):
                     toaster_port,
                     getstates = False):
         super().__init__(backend, job_id)
-        self._toaster_url="http://%s:%d/"%(toaster_host,int(toaster_port))
+        self._toaster_url="http://%s:%d"%(toaster_host,int(toaster_port))
         self._result = None
         self._qobj_dict = qobj.to_dict()
         self._futures = []
