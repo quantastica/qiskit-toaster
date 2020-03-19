@@ -29,11 +29,10 @@ from qiskit.result import Result
 logger = logging.getLogger(__name__)
 
 def fetch_last_response(timeout,job_id):
-    req = request.Request("http://localhost:8000/last/%s"%job_id)
+    req = request.Request("http://localhost:8000/pollresult/%s"%job_id)
     txt = None
     while True:
         try:
-            print("Sending GET request...")
             response = request.urlopen(req,timeout=timeout)
         except urllib.error.HTTPError as e:
             # if we receive HTTP 400 here something went wrong
@@ -74,7 +73,6 @@ def run_simulation_via_http(jsonstr, params, job_id):
             # print(e)
             time.sleep(0.2)
         except ConnectionResetError as e: 
-            # print(e)
             time.sleep(0.2)
         else:
             txt = response.read().decode('utf8')
@@ -82,7 +80,6 @@ def run_simulation_via_http(jsonstr, params, job_id):
     
     if txt:
         res = json.loads(txt)
-    # print("response:",job_id,res)
     return res
 
 def _run_with_qtoaster_static(qobj_dict, get_states, toaster_path, job_id):
@@ -171,14 +168,17 @@ class ToasterJob(BaseJob):
 
         logger.debug("submitting...")
         all_exps = self._qobj_dict
+        exp_index = 0
         for exp in all_exps["experiments"]:
+            exp_index += 1
+            exp_job_id = "Exp_%d_%s"%(exp_index,self._job_id)
             single_exp = copy.deepcopy(all_exps)
             single_exp["experiments"]=[exp]
             self._futures.append(self._executor.submit(_run_with_qtoaster_static,
                 single_exp,
                 self._getstates,
                 self._toasterpath,
-                self._job_id)
+                exp_job_id)
                 )
 
     def wait(self, timeout=None):

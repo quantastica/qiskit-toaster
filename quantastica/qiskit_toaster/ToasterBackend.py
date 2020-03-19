@@ -17,6 +17,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendConfiguration
 import os
 
+# TODO: Pass ip and port through constructor and ToasterBackend.get_backend
 class ToasterBackend(BaseBackend):
     MAX_QUBITS_MEMORY = 32
 
