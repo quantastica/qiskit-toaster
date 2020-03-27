@@ -8,29 +8,9 @@ from qiskit.compiler import transpile, assemble
 from math import pi
 import time
 import sys
+import common
 
-class TestToasterBackend(unittest.TestCase):
-    @staticmethod 
-    def toaster_backend(backend_name=None):
-        return ToasterBackend.get_backend(
-            backend_name=backend_name,
-            toaster_host=os.getenv("TOASTER_HOST","localhost"),
-            toaster_port=os.getenv("TOASTER_PORT","8001")
-        )
-
-    def setUp(self):
-        logging.basicConfig(
-            format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
-            level=os.environ.get("LOGLEVEL", "CRITICAL"),
-        )
-        self.startTime = time.time()
-        pass
-
-    def tearDown(self):
-        t = time.time() - self.startTime
-        sys.stderr.write(" took %.3fs ... " % (t))
-        pass
-
+class TestToasterBackend(common.TestToasterBase):
     def test_bell_counts(self):
         shots = 256
         qc = TestToasterBackend.get_bell_qc()

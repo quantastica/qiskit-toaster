@@ -50,6 +50,8 @@ def fetch_last_response(toaster_url,timeout,job_id):
     return txt
 
 def run_simulation_via_http(toaster_url,jsonstr, params, job_id):
+    logger.info("Sending circuit to toaster, url: %s",toaster_url)
+    logger.info("Simulation params: %s",params)
     timeout = None
     params['content-type']='application/json'
     req = request.Request(toaster_url+"/submit",
@@ -57,16 +59,20 @@ def run_simulation_via_http(toaster_url,jsonstr, params, job_id):
         headers=params)
     txt = None
     res = None
+    max_retries = 5
+    retry_count = 0
     while True:
         try:
             response = request.urlopen(req, timeout=timeout)
         except socket.timeout as e:
+            logger.debug("Exception raised: %s",e)
             txt = fetch_last_response(toaster_url, timeout,job_id)
             if txt is None:
                 continue
             else:    
                 break
         except urllib.error.HTTPError as e:
+            logger.debug("Exception raised: %s",e)
             # already submitted, lets fetch results
             if e.code == 409:
                 txt = fetch_last_response(toaster_url, timeout,job_id)
@@ -74,15 +80,15 @@ def run_simulation_via_http(toaster_url,jsonstr, params, job_id):
                     continue
                 else:    
                     break
-        except urllib.error.URLError as e:
-            # if isinstance(e.reason, ConnectionRefusedError):
-            #     print("Toaster not running... exiting...")
-            #     break
-            # print(e)
-            time.sleep(0.2)
-        except ConnectionResetError as e: 
-            # print(e)
-            time.sleep(0.2)
+        except: 
+            if retry_count < max_retries :
+                retry_count += 1
+                logger.debug("Connection failed, retrying (#%d)...",retry_count)
+                time.sleep(0.2)
+            else:
+                msg = "Failed to connect to qubit-toaster, probably not running (url: %s)" % toaster_url
+                logger.critical(msg)
+                raise RuntimeError(msg)
         else:
             txt = response.read().decode('utf8')
             break
@@ -112,7 +118,6 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_url, job_id):
         params['x-qtc-seed'] = seed
 
         
-    logger.info(params)
     converted = qobj_to_toaster(qobj_dict, { "all_experiments": False })
 
     resultraw = run_simulation_via_http(
@@ -160,6 +165,8 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_url, job_id):
     return result
 
 class ToasterJob(BaseJob):
+    DEFAULT_TOASTER_HOST = "localhost"
+    DEFAULT_TOASTER_PORT = 8001
     _MINQTOASTERVERSION = '0.9.9'
 
     _executor = futures.ProcessPoolExecutor(max_workers=2)

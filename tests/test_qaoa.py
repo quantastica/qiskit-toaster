@@ -16,32 +16,14 @@ import time
 import sys
 import logging
 import os
+import common
 
 
 @unittest.skipUnless(
     os.getenv("SLOW") == "1",
     "Skipping this test (environment variable SLOW must be set to 1)",
 )
-class TestQAOA(unittest.TestCase):
-    @staticmethod 
-    def toaster_backend(backend_name=None):
-        return ToasterBackend.get_backend(
-            backend_name=backend_name,
-            toaster_host=os.getenv("TOASTER_HOST","localhost"),
-            toaster_port=os.getenv("TOASTER_PORT","8001")
-        )
-
-    def setUp(self):
-        logging.basicConfig(
-            format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
-            level=os.environ.get("LOGLEVEL", "CRITICAL"),
-        )
-        self.startTime = time.time()
-
-    def tearDown(self):
-        t = time.time() - self.startTime
-        sys.stderr.write(" took %.3fs ... " % (t))
-
+class TestQAOA(common.TestToasterBase):
     def test_qaoa(self):
         print("Running toaster test...")
         toaster_backend = self.toaster_backend("qasm_simulator")

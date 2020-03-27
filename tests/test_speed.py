@@ -7,25 +7,15 @@ import time
 import sys
 import logging
 import os
+import common
 
 @unittest.skipUnless(os.getenv("SLOW")=="1","Skipping this test (environment variable SLOW must be set to 1)")
-class TestSpeed(unittest.TestCase):
-    def setUp(self):
-        logging.basicConfig(
-            format='%(levelname)s %(asctime)s %(pathname)s - %(message)s',
-            level=os.environ.get("LOGLEVEL", "CRITICAL"),
-        )
-        self.startTime = time.time()
-
-    def tearDown(self):
-        t = time.time() - self.startTime
-        sys.stderr.write(' took %.3fs ... ' % (t))
-
+class TestSpeed(common.TestToasterBase):
     def test_qft25(self):
         logging.info("======= Starting our function =======")
         qc = self.get_qft25_qc()
         stats = self.execute_and_get_stats(
-            ToasterBackend.ToasterBackend(),
+            self.toaster_backend(),
             # Aer.get_backend("qasm_simulator"),
             qc,
             1

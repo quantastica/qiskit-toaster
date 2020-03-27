@@ -49,8 +49,8 @@ class ToasterBackend(BaseBackend):
     def __init__(self, configuration=None,
                 provider=None,
                 backend_name = None,
-                toaster_host = None,
-                toaster_port = None):
+                toaster_host = ToasterJob.ToasterJob.DEFAULT_TOASTER_HOST,
+                toaster_port = ToasterJob.ToasterJob.DEFAULT_TOASTER_PORT):
         configuration = configuration or BackendConfiguration.from_dict(
             self.DEFAULT_CONFIGURATION)
         super().__init__(configuration=configuration, provider=provider)
@@ -60,8 +60,8 @@ class ToasterBackend(BaseBackend):
             getstates = True
 
         self._getstates = getstates
-        self._toaster_port = int(toaster_port or 8000)
-        self._toaster_host = toaster_host or "127.0.0.1"
+        self._toaster_port = toaster_port
+        self._toaster_host = toaster_host
 
     #@profile
     def run(self, qobj):
