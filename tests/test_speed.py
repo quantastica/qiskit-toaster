@@ -1,45 +1,52 @@
 import unittest
-from quantastica.qiskit_toaster import ToasterBackend
 from qiskit import QuantumRegister
 from qiskit import QuantumCircuit, execute
 import numpy as np
-import time
-import sys
 import logging
 import os
 import common
 
-@unittest.skipUnless(os.getenv("SLOW")=="1","Skipping this test (environment variable SLOW must be set to 1)")
+
+@unittest.skipUnless(
+    os.getenv("SLOW") == "1",
+    "Skipping this test (environment variable SLOW must be set to 1)",
+)
 class TestSpeed(common.TestToasterBase):
     def test_qft25(self):
         logging.info("======= Starting our function =======")
         qc = self.get_qft25_qc()
-        stats = self.execute_and_get_stats(
+        self.execute_and_get_stats(
             self.toaster_backend(),
             # Aer.get_backend("qasm_simulator"),
             qc,
-            1
+            1,
         )
         logging.info("======= Ending our function =======")
 
     @staticmethod
     def execute_and_get_stats(backend, qc, shots):
-        job = execute(qc, optimization_level=0, backend=backend, shots=shots, seed_simulator=1)
+        job = execute(
+            qc,
+            optimization_level=0,
+            backend=backend,
+            shots=shots,
+            seed_simulator=1,
+        )
         job_result = job.result()
         counts = job_result.get_counts(qc)
         total_counts = 0
         for c in counts:
             total_counts += counts[c]
         ret = dict()
-        ret['counts'] = counts
-        ret['totalcounts'] = total_counts
+        ret["counts"] = counts
+        ret["totalcounts"] = total_counts
         return ret
 
     @staticmethod
     def get_qft25_qc():
         qc = QuantumCircuit()
 
-        q = QuantumRegister(25, 'q')
+        q = QuantumRegister(25, "q")
 
         qc.add_register(q)
 
@@ -196,7 +203,7 @@ class TestSpeed(common.TestToasterBase):
         qc.crz(np.pi / 4, q[8], q[10])
         qc.crz(np.pi / 2, q[8], q[9])
         qc.h(q[8])
-        qc.crz(np.pi / 1.31072e+5, q[7], q[24])
+        qc.crz(np.pi / 1.31072e5, q[7], q[24])
         qc.crz(np.pi / 65536, q[7], q[23])
         qc.crz(np.pi / 32768, q[7], q[22])
         qc.crz(np.pi / 16384, q[7], q[21])
@@ -214,8 +221,8 @@ class TestSpeed(common.TestToasterBase):
         qc.crz(np.pi / 4, q[7], q[9])
         qc.crz(np.pi / 2, q[7], q[8])
         qc.h(q[7])
-        qc.crz(np.pi / 2.62144e+5, q[6], q[24])
-        qc.crz(np.pi / 1.31072e+5, q[6], q[23])
+        qc.crz(np.pi / 2.62144e5, q[6], q[24])
+        qc.crz(np.pi / 1.31072e5, q[6], q[23])
         qc.crz(np.pi / 65536, q[6], q[22])
         qc.crz(np.pi / 32768, q[6], q[21])
         qc.crz(np.pi / 16384, q[6], q[20])
@@ -233,9 +240,9 @@ class TestSpeed(common.TestToasterBase):
         qc.crz(np.pi / 4, q[6], q[8])
         qc.crz(np.pi / 2, q[6], q[7])
         qc.h(q[6])
-        qc.crz(np.pi / 5.24288e+5, q[5], q[24])
-        qc.crz(np.pi / 2.62144e+5, q[5], q[23])
-        qc.crz(np.pi / 1.31072e+5, q[5], q[22])
+        qc.crz(np.pi / 5.24288e5, q[5], q[24])
+        qc.crz(np.pi / 2.62144e5, q[5], q[23])
+        qc.crz(np.pi / 1.31072e5, q[5], q[22])
         qc.crz(np.pi / 65536, q[5], q[21])
         qc.crz(np.pi / 32768, q[5], q[20])
         qc.crz(np.pi / 16384, q[5], q[19])
@@ -253,10 +260,10 @@ class TestSpeed(common.TestToasterBase):
         qc.crz(np.pi / 4, q[5], q[7])
         qc.crz(np.pi / 2, q[5], q[6])
         qc.h(q[5])
-        qc.crz(np.pi / 1.048576e+6, q[4], q[24])
-        qc.crz(np.pi / 5.24288e+5, q[4], q[23])
-        qc.crz(np.pi / 2.62144e+5, q[4], q[22])
-        qc.crz(np.pi / 1.31072e+5, q[4], q[21])
+        qc.crz(np.pi / 1.048576e6, q[4], q[24])
+        qc.crz(np.pi / 5.24288e5, q[4], q[23])
+        qc.crz(np.pi / 2.62144e5, q[4], q[22])
+        qc.crz(np.pi / 1.31072e5, q[4], q[21])
         qc.crz(np.pi / 65536, q[4], q[20])
         qc.crz(np.pi / 32768, q[4], q[19])
         qc.crz(np.pi / 16384, q[4], q[18])
@@ -274,11 +281,11 @@ class TestSpeed(common.TestToasterBase):
         qc.crz(np.pi / 4, q[4], q[6])
         qc.crz(np.pi / 2, q[4], q[5])
         qc.h(q[4])
-        qc.crz(np.pi / 2.097152e+6, q[3], q[24])
-        qc.crz(np.pi / 1.048576e+6, q[3], q[23])
-        qc.crz(np.pi / 5.24288e+5, q[3], q[22])
-        qc.crz(np.pi / 2.62144e+5, q[3], q[21])
-        qc.crz(np.pi / 1.31072e+5, q[3], q[20])
+        qc.crz(np.pi / 2.097152e6, q[3], q[24])
+        qc.crz(np.pi / 1.048576e6, q[3], q[23])
+        qc.crz(np.pi / 5.24288e5, q[3], q[22])
+        qc.crz(np.pi / 2.62144e5, q[3], q[21])
+        qc.crz(np.pi / 1.31072e5, q[3], q[20])
         qc.crz(np.pi / 65536, q[3], q[19])
         qc.crz(np.pi / 32768, q[3], q[18])
         qc.crz(np.pi / 16384, q[3], q[17])
@@ -296,12 +303,12 @@ class TestSpeed(common.TestToasterBase):
         qc.crz(np.pi / 4, q[3], q[5])
         qc.crz(np.pi / 2, q[3], q[4])
         qc.h(q[3])
-        qc.crz(np.pi / 4.194304e+6, q[2], q[24])
-        qc.crz(np.pi / 2.097152e+6, q[2], q[23])
-        qc.crz(np.pi / 1.048576e+6, q[2], q[22])
-        qc.crz(np.pi / 5.24288e+5, q[2], q[21])
-        qc.crz(np.pi / 2.62144e+5, q[2], q[20])
-        qc.crz(np.pi / 1.31072e+5, q[2], q[19])
+        qc.crz(np.pi / 4.194304e6, q[2], q[24])
+        qc.crz(np.pi / 2.097152e6, q[2], q[23])
+        qc.crz(np.pi / 1.048576e6, q[2], q[22])
+        qc.crz(np.pi / 5.24288e5, q[2], q[21])
+        qc.crz(np.pi / 2.62144e5, q[2], q[20])
+        qc.crz(np.pi / 1.31072e5, q[2], q[19])
         qc.crz(np.pi / 65536, q[2], q[18])
         qc.crz(np.pi / 32768, q[2], q[17])
         qc.crz(np.pi / 16384, q[2], q[16])
@@ -319,13 +326,13 @@ class TestSpeed(common.TestToasterBase):
         qc.crz(np.pi / 4, q[2], q[4])
         qc.crz(np.pi / 2, q[2], q[3])
         qc.h(q[2])
-        qc.crz(np.pi / 8.388608e+6, q[1], q[24])
-        qc.crz(np.pi / 4.194304e+6, q[1], q[23])
-        qc.crz(np.pi / 2.097152e+6, q[1], q[22])
-        qc.crz(np.pi / 1.048576e+6, q[1], q[21])
-        qc.crz(np.pi / 5.24288e+5, q[1], q[20])
-        qc.crz(np.pi / 2.62144e+5, q[1], q[19])
-        qc.crz(np.pi / 1.31072e+5, q[1], q[18])
+        qc.crz(np.pi / 8.388608e6, q[1], q[24])
+        qc.crz(np.pi / 4.194304e6, q[1], q[23])
+        qc.crz(np.pi / 2.097152e6, q[1], q[22])
+        qc.crz(np.pi / 1.048576e6, q[1], q[21])
+        qc.crz(np.pi / 5.24288e5, q[1], q[20])
+        qc.crz(np.pi / 2.62144e5, q[1], q[19])
+        qc.crz(np.pi / 1.31072e5, q[1], q[18])
         qc.crz(np.pi / 65536, q[1], q[17])
         qc.crz(np.pi / 32768, q[1], q[16])
         qc.crz(np.pi / 16384, q[1], q[15])
@@ -343,14 +350,14 @@ class TestSpeed(common.TestToasterBase):
         qc.crz(np.pi / 4, q[1], q[3])
         qc.crz(np.pi / 2, q[1], q[2])
         qc.h(q[1])
-        qc.crz(np.pi / 1.6777216e+7, q[0], q[24])
-        qc.crz(np.pi / 8.388608e+6, q[0], q[23])
-        qc.crz(np.pi / 4.194304e+6, q[0], q[22])
-        qc.crz(np.pi / 2.097152e+6, q[0], q[21])
-        qc.crz(np.pi / 1.048576e+6, q[0], q[20])
-        qc.crz(np.pi / 5.24288e+5, q[0], q[19])
-        qc.crz(np.pi / 2.62144e+5, q[0], q[18])
-        qc.crz(np.pi / 1.31072e+5, q[0], q[17])
+        qc.crz(np.pi / 1.6777216e7, q[0], q[24])
+        qc.crz(np.pi / 8.388608e6, q[0], q[23])
+        qc.crz(np.pi / 4.194304e6, q[0], q[22])
+        qc.crz(np.pi / 2.097152e6, q[0], q[21])
+        qc.crz(np.pi / 1.048576e6, q[0], q[20])
+        qc.crz(np.pi / 5.24288e5, q[0], q[19])
+        qc.crz(np.pi / 2.62144e5, q[0], q[18])
+        qc.crz(np.pi / 1.31072e5, q[0], q[17])
         qc.crz(np.pi / 65536, q[0], q[16])
         qc.crz(np.pi / 32768, q[0], q[15])
         qc.crz(np.pi / 16384, q[0], q[14])
@@ -383,5 +390,5 @@ class TestSpeed(common.TestToasterBase):
         return qc
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

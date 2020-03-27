@@ -1,14 +1,10 @@
-import logging
-import os
 import unittest
-from quantastica.qiskit_toaster import ToasterBackend
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QuantumCircuit, execute, Aer
 from qiskit.compiler import transpile, assemble
 from math import pi
-import time
-import sys
 import common
+
 
 class TestToasterBackend(common.TestToasterBase):
     def test_bell_counts(self):
@@ -23,30 +19,21 @@ class TestToasterBackend(common.TestToasterBase):
 
     def test_bell_counts_with_seed(self):
         shots = 1024
-        qc=TestToasterBackend.get_bell_qc()
+        qc = TestToasterBackend.get_bell_qc()
         stats1 = TestToasterBackend.execute_and_get_stats(
-            self.toaster_backend(),
-            qc,
-            shots,
-            seed = 1
+            self.toaster_backend(), qc, shots, seed=1
         )
         stats2 = TestToasterBackend.execute_and_get_stats(
-            self.toaster_backend(),
-            qc,
-            shots,
-            seed = 1
+            self.toaster_backend(), qc, shots, seed=1
         )
         stats3 = TestToasterBackend.execute_and_get_stats(
-            self.toaster_backend(),
-            qc,
-            shots,
-            seed = 2
+            self.toaster_backend(), qc, shots, seed=2
         )
-        self.assertTrue( stats1['statevector'] is None)
-        self.assertEqual( len(stats1['counts']), 2)
-        self.assertEqual( stats1['totalcounts'], shots)
-        self.assertEqual(stats1['counts'],stats2['counts'])
-        self.assertNotEqual(stats1['counts'],stats3['counts'])
+        self.assertTrue(stats1["statevector"] is None)
+        self.assertEqual(len(stats1["counts"]), 2)
+        self.assertEqual(stats1["totalcounts"], shots)
+        self.assertEqual(stats1["counts"], stats2["counts"])
+        self.assertNotEqual(stats1["counts"], stats3["counts"])
 
     def test_teleport_counts(self):
         shots = 256
@@ -66,9 +53,7 @@ class TestToasterBackend(common.TestToasterBase):
         shots = 256
         qc = TestToasterBackend.get_bell_qc()
         stats = TestToasterBackend.execute_and_get_stats(
-            self.toaster_backend(
-                backend_name="statevector_simulator"
-            ),
+            self.toaster_backend(backend_name="statevector_simulator"),
             qc,
             shots,
         )
@@ -95,9 +80,7 @@ class TestToasterBackend(common.TestToasterBase):
         Now execute forest backend
         """
         stats = TestToasterBackend.execute_and_get_stats(
-            self.toaster_backend(
-                backend_name="statevector_simulator"
-            ),
+            self.toaster_backend(backend_name="statevector_simulator"),
             qc,
             shots,
         )
@@ -131,18 +114,18 @@ class TestToasterBackend(common.TestToasterBase):
 
     def test_multiple_experiments(self):
         backend = self.toaster_backend()
-        qc_list = [ self.get_bell_qc(), self.get_teleport_qc() ]
-        transpiled = transpile(qc_list, backend = backend)
+        qc_list = [self.get_bell_qc(), self.get_teleport_qc()]
+        transpiled = transpile(qc_list, backend=backend)
         qobjs = assemble(transpiled, backend=backend, shots=4096)
         job_info = backend.run(qobjs)
         bell_counts = job_info.result().get_counts("Bell")
         tel_counts = job_info.result().get_counts("Teleport")
-        self.assertEqual(len(bell_counts),2)
-        self.assertEqual(len(tel_counts),4)
+        self.assertEqual(len(bell_counts), 2)
+        self.assertEqual(len(tel_counts), 4)
 
     @staticmethod
-    def execute_and_get_stats(backend, qc, shots, seed = None):
-        job = execute(qc, backend=backend, shots=shots, seed_simulator = seed)
+    def execute_and_get_stats(backend, qc, shots, seed=None):
+        job = execute(qc, backend=backend, shots=shots, seed_simulator=seed)
         job_result = job.result()
         counts = job_result.get_counts(qc)
         total_counts = 0
@@ -151,7 +134,7 @@ class TestToasterBackend(common.TestToasterBase):
 
         try:
             state_vector = job_result.get_statevector(qc)
-        except:
+        except Exception:
             state_vector = None
         ret = dict()
         ret["counts"] = counts

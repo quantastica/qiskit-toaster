@@ -9,12 +9,8 @@ from qiskit.aqua.algorithms import QAOA
 from qiskit.aqua.components.optimizers import SPSA
 from qiskit.optimization.ising import docplex, max_cut
 from qiskit.optimization.ising.common import sample_most_likely
-from quantastica.qiskit_toaster import ToasterBackend, ToasterJob
+from quantastica.qiskit_toaster import ToasterJob
 
-
-import time
-import sys
-import logging
 import os
 import common
 
@@ -28,7 +24,7 @@ class TestQAOA(common.TestToasterBase):
         print("Running toaster test...")
         toaster_backend = self.toaster_backend("qasm_simulator")
         toaster_results = self.run_simulation(toaster_backend)
-        print("Run time:",ToasterJob.ToasterJob._run_time,"seconds")
+        print("Run time:", ToasterJob.ToasterJob._run_time, "seconds")
         print("Running AER test...")
         aer_backend = BasicAer.get_backend("qasm_simulator")
         aer_results = self.run_simulation(aer_backend)
@@ -38,10 +34,15 @@ class TestQAOA(common.TestToasterBase):
         print("  ==== Toaster Results =====")
         print(toaster_results)
         threshold = 0.9
-        aer_k = abs(aer_results['maxcut_objective']/aer_results['solution_objective'])
-        toaster_k = abs(toaster_results['maxcut_objective']/toaster_results['solution_objective'])
-        self.assertGreater( aer_k, threshold )
-        self.assertGreater( toaster_k, threshold )
+        aer_k = abs(
+            aer_results["maxcut_objective"] / aer_results["solution_objective"]
+        )
+        toaster_k = abs(
+            toaster_results["maxcut_objective"]
+            / toaster_results["solution_objective"]
+        )
+        self.assertGreater(aer_k, threshold)
+        self.assertGreater(toaster_k, threshold)
 
     def run_simulation(self, backend):
 
@@ -50,10 +51,9 @@ class TestQAOA(common.TestToasterBase):
         #
         # Random 3-regular graph with 12 nodes
         #
-        graph = nx.random_regular_graph(3, n,seed=seed)
+        graph = nx.random_regular_graph(3, n, seed=seed)
         for e in graph.edges():
-            graph[e[0]][e[1]]['weight'] = 1.0
-
+            graph[e[0]][e[1]]["weight"] = 1.0
 
         # Compute the weight matrix from the graph
         w = np.zeros([n, n])
@@ -78,11 +78,14 @@ class TestQAOA(common.TestToasterBase):
 
         # Run quantum algorithm QAOA on qasm simulator
         spsa = SPSA(max_trials=250)
-        qaoa = QAOA(qubit_op, spsa, p=5, max_evals_grouped = 4)
+        qaoa = QAOA(qubit_op, spsa, p=5, max_evals_grouped=4)
 
         quantum_instance = QuantumInstance(
-            backend, shots=1024, seed_simulator=seed, seed_transpiler=seed,
-            optimization_level=0
+            backend,
+            shots=1024,
+            seed_simulator=seed,
+            seed_transpiler=seed,
+            optimization_level=0,
         )
         result = qaoa.run(quantum_instance)
 
