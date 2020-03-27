@@ -4,7 +4,10 @@ from qiskit import QuantumCircuit, execute
 import numpy as np
 import logging
 import os
-import common
+try:
+    from . import common
+except Exception:
+    import common
 
 
 @unittest.skipUnless(

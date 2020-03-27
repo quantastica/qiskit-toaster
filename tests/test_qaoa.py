@@ -10,9 +10,12 @@ from qiskit.aqua.components.optimizers import SPSA
 from qiskit.optimization.ising import docplex, max_cut
 from qiskit.optimization.ising.common import sample_most_likely
 from quantastica.qiskit_toaster import ToasterJob
+try:
+    from . import common
+except Exception:
+    import common
 
 import os
-import common
 
 
 @unittest.skipUnless(

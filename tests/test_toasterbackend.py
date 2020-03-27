@@ -3,7 +3,10 @@ from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QuantumCircuit, execute, Aer
 from qiskit.compiler import transpile, assemble
 from math import pi
-import common
+try:
+    from . import common
+except Exception:
+    import common
 
 
 class TestToasterBackend(common.TestToasterBase):
