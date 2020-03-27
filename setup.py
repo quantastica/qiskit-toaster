@@ -1,6 +1,6 @@
 # This code is part of quantastica
 #
-# (C) Copyright Quantastica 2019. 
+# (C) Copyright Quantastica 2019.
 # https://quantastica.com/
 #
 # This code is licensed under the Apache License, Version 2.0. You may
@@ -35,8 +35,7 @@ setup(
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3",
-        "Intended Audience :: Science/Research"
-        ],
+        "Intended Audience :: Science/Research"],
     namespace_packages=['quantastica'],
     packages=find_namespace_packages(),
     include_package_data=True,
