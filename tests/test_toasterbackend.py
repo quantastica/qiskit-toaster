@@ -3,6 +3,7 @@ from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QuantumCircuit, execute, Aer
 from qiskit.compiler import transpile, assemble
 from math import pi
+
 try:
     from . import common
 except Exception:
@@ -125,6 +126,17 @@ class TestToasterBackend(common.TestToasterBase):
         tel_counts = job_info.result().get_counts("Teleport")
         self.assertEqual(len(bell_counts), 2)
         self.assertEqual(len(tel_counts), 4)
+
+    def test_too_many_qubits(self):
+        qc = QuantumCircuit(name="TooManyQubits")
+
+        q = QuantumRegister(100, "q")
+        qc.add_register(q)
+
+        with self.assertRaises(RuntimeError):
+            TestToasterBackend.execute_and_get_stats(
+                self.toaster_backend(), qc, 1
+            )
 
     @staticmethod
     def execute_and_get_stats(backend, qc, shots, seed=None):

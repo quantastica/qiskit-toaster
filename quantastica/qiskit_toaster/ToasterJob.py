@@ -35,10 +35,7 @@ def fetch_last_response(toaster_url, timeout, job_id):
         try:
             response = request.urlopen(req, timeout=timeout)
         except urllib.error.HTTPError as e:
-            # if we receive HTTP 400 here something went wrong
-            # and POST request should be repeated
-            logger.debug("Exception raised: %s", e)
-            break
+            raise RuntimeError("Error received from API(1): %s"%str(e))
         except (socket.timeout, urllib.error.URLError) as e:
             logger.debug("Exception raised: %s", e)
             time.sleep(0.2)
@@ -81,6 +78,8 @@ def run_simulation_via_http(toaster_url, jsonstr, params, job_id):
                     continue
                 else:
                     break
+            else:
+                raise RuntimeError("Error received from API(2): %s"%str(e))
         except Exception:
             if retry_count < max_retries:
                 retry_count += 1
