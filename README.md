@@ -55,6 +55,7 @@ backend = ToasterBackend.get_backend("qasm_simulator")
 # OR (to specify custom toaster_host and toaster_port params
 # default values are localhost and 8001 respectively):
 # backend = ToasterBackend.get_backend(
+#            "statevector_simulator",
 #            toaster_host="192.168.1.2",
 #            toaster_port=8888,
 #        )

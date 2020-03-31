@@ -10,7 +10,7 @@ class TestToasterBase(unittest.TestCase):
     @staticmethod
     def toaster_backend(backend_name=None):
         return ToasterBackend.get_backend(
-            backend_name=backend_name,
+            backend_name,
             toaster_host=os.getenv("TOASTER_HOST", None),
             toaster_port=os.getenv("TOASTER_PORT", None),
         )
