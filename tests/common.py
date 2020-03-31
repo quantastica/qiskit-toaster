@@ -11,8 +11,8 @@ class TestToasterBase(unittest.TestCase):
     def toaster_backend(backend_name=None):
         return ToasterBackend.get_backend(
             backend_name=backend_name,
-            toaster_host=os.getenv("TOASTER_HOST", "localhost"),
-            toaster_port=os.getenv("TOASTER_PORT", "8001"),
+            toaster_host=os.getenv("TOASTER_HOST", None),
+            toaster_port=os.getenv("TOASTER_PORT", None),
         )
 
     @classmethod

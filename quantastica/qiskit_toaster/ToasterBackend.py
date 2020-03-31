@@ -18,6 +18,10 @@ from qiskit.providers.models import BackendConfiguration
 
 
 class ToasterBackend(BaseBackend):
+
+    DEFAULT_TOASTER_HOST = ToasterJob.ToasterJob.DEFAULT_TOASTER_HOST
+    DEFAULT_TOASTER_PORT = ToasterJob.ToasterJob.DEFAULT_TOASTER_PORT
+
     MAX_QUBITS_MEMORY = 32
     DEFAULT_CONFIGURATION = {
         "backend_name": "toaster_simulator",
@@ -53,8 +57,8 @@ class ToasterBackend(BaseBackend):
         configuration=None,
         provider=None,
         backend_name=None,
-        toaster_host=ToasterJob.ToasterJob.DEFAULT_TOASTER_HOST,
-        toaster_port=ToasterJob.ToasterJob.DEFAULT_TOASTER_PORT,
+        toaster_host=None,
+        toaster_port=None,
     ):
         configuration = configuration or BackendConfiguration.from_dict(
             self.DEFAULT_CONFIGURATION
@@ -69,8 +73,8 @@ class ToasterBackend(BaseBackend):
             getstates = True
 
         self._getstates = getstates
-        self._toaster_port = toaster_port
-        self._toaster_host = toaster_host
+        self._toaster_port = toaster_port or ToasterBackend.DEFAULT_TOASTER_PORT
+        self._toaster_host = toaster_host or ToasterBackend.DEFAULT_TOASTER_HOST
 
     # @profile
     def run(self, qobj):

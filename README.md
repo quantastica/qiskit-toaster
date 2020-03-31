@@ -49,8 +49,15 @@ qc.measure(q[1], c[1])
 # Use:
 backend = ToasterBackend.get_backend("qasm_simulator")
 
-# OR:
+# OR (to use statevector_simulator backend):
 # backend = ToasterBackend.get_backend("statevector_simulator")
+
+# OR (to specify custom toaster_host and toaster_port params
+# default values are localhost and 8001 respectively):
+# backend = ToasterBackend.get_backend(
+#            toaster_host="192.168.1.2",
+#            toaster_port=8888,
+#        )
 
 job = execute(qc, backend=backend)
 # To speed things up a little bit qiskit's optimization can be disabled
