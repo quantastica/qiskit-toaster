@@ -19,6 +19,7 @@ import copy
 import urllib
 from urllib import request
 import socket
+import os
 
 from quantastica.qconvert import qobj_to_toaster
 
@@ -59,6 +60,13 @@ def run_simulation_via_http(toaster_url, jsonstr, params, job_id):
     res = None
     max_retries = 5
     retry_count = 0
+
+    dump_dir = os.getenv("TOASTER_DUMP_DIR",None)
+    if dump_dir is not None:
+        path_req = "%s/%s.request.json" % (dump_dir,job_id)
+        with open(path_req,'w') as f:
+            f.write(jsonstr.decode('utf-8'))
+
     while True:
         try:
             response = request.urlopen(req, timeout=timeout)
@@ -97,6 +105,11 @@ def run_simulation_via_http(toaster_url, jsonstr, params, job_id):
         else:
             txt = response.read().decode("utf8")
             break
+
+    if dump_dir is not None:
+        path_res = "%s/%s.response.json" % (dump_dir,job_id)
+        with open(path_res,'w') as f:
+            f.write(str(txt))
 
     if txt:
         res = json.loads(txt)
