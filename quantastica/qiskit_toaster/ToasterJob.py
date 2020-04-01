@@ -187,8 +187,11 @@ class ToasterJob(BaseJob):
     DEFAULT_TOASTER_HOST = "localhost"
     DEFAULT_TOASTER_PORT = 8001
     _MINQTOASTERVERSION = "0.9.9"
-
-    _executor = futures.ProcessPoolExecutor(max_workers=2)
+    
+    if sys.platform in ['darwin', 'win32']:
+        _executor = futures.ThreadPoolExecutor(max_workers=2)
+    else:
+        _executor = futures.ProcessPoolExecutor(max_workers=2)
     _run_time = 0
 
     def __init__(
