@@ -1,6 +1,6 @@
 import unittest
 from qiskit import QuantumRegister
-from qiskit import QuantumCircuit, execute
+from qiskit import QuantumCircuit, execute, Aer
 import numpy as np
 import logging
 import os
@@ -16,15 +16,27 @@ except Exception:
     "Skipping this test (environment variable SLOW must be set to 1)",
 )
 class TestSpeed(common.TestToasterBase):
-    def test_qft25(self):
+    def test_qft25_toaster(self):
         logging.info("======= Starting our function =======")
         qc = self.get_qft25_qc()
-        self.execute_and_get_stats(
+        stats = self.execute_and_get_stats(
             self.toaster_backend(),
             # Aer.get_backend("qasm_simulator"),
             qc,
             1,
         )
+        print("QFT25 toaster:",stats)
+        logging.info("======= Ending our function =======")
+
+    def test_qft25_aer(self):
+        logging.info("======= Starting our function =======")
+        qc = self.get_qft25_qc()
+        stats = self.execute_and_get_stats(
+            Aer.get_backend("qasm_simulator"),
+            qc,
+            1,
+        )
+        print("QFT25 toaster:",stats)
         logging.info("======= Ending our function =======")
 
     @staticmethod
@@ -391,6 +403,7 @@ class TestSpeed(common.TestToasterBase):
         qc.swap(q[9], q[15])
         qc.swap(q[10], q[14])
         qc.swap(q[11], q[13])
+        qc.measure_all()
         return qc
 
 
