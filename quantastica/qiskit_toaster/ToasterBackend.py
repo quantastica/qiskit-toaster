@@ -63,6 +63,10 @@ class ToasterBackend(BaseBackend):
         configuration = configuration or BackendConfiguration.from_dict(
             self.DEFAULT_CONFIGURATION
         )
+
+        # disable unroller
+        # configuration.basis_gates=None
+
         super().__init__(configuration=configuration, provider=provider)
 
         getstates = False
@@ -77,7 +81,7 @@ class ToasterBackend(BaseBackend):
         self._toaster_host = toaster_host or ToasterBackend.DEFAULT_TOASTER_HOST
 
     # @profile
-    def run(self, qobj):
+    def run(self, qobj, backend_options = None):
         job_id = str(uuid.uuid4())
         job = ToasterJob.ToasterJob(
             self,
@@ -86,6 +90,7 @@ class ToasterBackend(BaseBackend):
             getstates=self._getstates,
             toaster_host=self._toaster_host,
             toaster_port=self._toaster_port,
+            backend_options=backend_options
         )
         job.submit()
         return job

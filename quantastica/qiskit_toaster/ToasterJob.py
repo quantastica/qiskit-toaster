@@ -117,7 +117,13 @@ def run_simulation_via_http(toaster_url, jsonstr, params, job_id):
     return res
 
 
-def _run_with_qtoaster_static(qobj_dict, get_states, toaster_url, job_id):
+def _run_with_qtoaster_static(
+    qobj_dict,
+    get_states,
+    toaster_url,
+    job_id,
+    optimization_level=None,
+):
     SEED_SIMULATOR_KEY = "seed_simulator"
     if get_states:
         shots = 1
@@ -137,8 +143,9 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_url, job_id):
         seed = qobj_dict["config"][SEED_SIMULATOR_KEY]
         params["x-qtc-seed"] = seed
 
+    if optimization_level :
+        params["x-qtc-optimization"] = optimization_level
     converted = qobj_to_toaster(qobj_dict, {"all_experiments": False})
-
     resultraw = run_simulation_via_http(
         toaster_url, converted.encode("utf-8"), params, job_id,
     )
@@ -161,7 +168,6 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_url, job_id):
                 "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"
                 % (rawversion, ToasterJob._MINQTOASTERVERSION)
             )
-
         counts = ToasterJob._convert_counts(resultraw["counts"])
         statevector = resultraw.get("statevector")
         data["counts"] = counts
@@ -203,6 +209,7 @@ class ToasterJob(BaseJob):
         toaster_host,
         toaster_port,
         getstates=False,
+        backend_options=None,
     ):
         super().__init__(backend, job_id)
         self._toaster_url = "http://%s:%d" % (toaster_host, int(toaster_port))
@@ -210,6 +217,7 @@ class ToasterJob(BaseJob):
         self._qobj_dict = qobj.to_dict()
         self._futures = []
         self._getstates = getstates
+        self._backend_options = backend_options
 
     def submit(self):
         if len(self._futures) > 0:
@@ -219,6 +227,11 @@ class ToasterJob(BaseJob):
         logger.debug("submitting...")
         all_exps = self._qobj_dict
         exp_index = 0
+        optimization_level = None
+        backend_options = self._backend_options
+        if backend_options:
+            optimization_level = backend_options.get('toaster_optimization',None)
+
         for exp in all_exps["experiments"]:
             exp_index += 1
             exp_job_id = "Exp_%d_%s" % (exp_index, self._job_id)
@@ -231,6 +244,7 @@ class ToasterJob(BaseJob):
                     self._getstates,
                     self._toaster_url,
                     exp_job_id,
+                    optimization_level=optimization_level
                 )
             )
 
