@@ -21,6 +21,7 @@ from urllib import request
 import socket
 import os
 import sys
+import subprocess
 
 from quantastica.qconvert import qobj_to_toaster
 
@@ -47,6 +48,50 @@ def fetch_last_response(toaster_url, timeout, job_id):
             break
 
     return txt
+
+def run_simulation_via_cli(toaster_path, jsonstr, params, job_id):
+    args = [
+        toaster_path,
+        "-",
+        '-s',
+        params.get('x-qtc-shots','1')
+    ]
+    returns = params.get('x-qtc-return','counts').split(",")
+    args.append("-r")
+    args += returns
+
+    if 'x-qtc-seed' in params:
+        args.append('--seed')
+        args.append(str(params['x-qtc-seed']))
+    if 'x-qtc-optimization' in params:
+        args.append('-o')
+        args.append(str(params['x-qtc-optimization']))
+    
+    # if get_states:
+    #     args.append("-r")
+    #     args.append("state")
+    # seed = 0
+    # if SEED_SIMULATOR_KEY in qobj_dict['config']:
+    #     seed = qobj_dict['config'][SEED_SIMULATOR_KEY]
+    #     args.append("--seed")
+    #     args.append("%d"%seed)
+    proc = subprocess.Popen(
+        args,
+        close_fds = False,
+        restore_signals = False,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE )
+
+    logger.info("Running q-toaster with following params:")
+    logger.info(args)
+    proc.stdin.write(jsonstr)
+    proc.stdin.close()
+    proc.wait()
+    qtoasterjson = proc.stdout.read()
+    proc.stdout.close()
+    resultraw = json.loads(qtoasterjson)
+
+    return resultraw
 
 
 def run_simulation_via_http(toaster_url, jsonstr, params, job_id):
@@ -136,7 +181,7 @@ def _run_with_qtoaster_static(
     params["x-qtc-jobid"] = job_id
 
     if get_states:
-        params["x-qtc-return"] += ",statevector"
+        params["x-qtc-return"] += ",state"
 
     seed = 0
     if SEED_SIMULATOR_KEY in qobj_dict["config"]:
@@ -146,9 +191,15 @@ def _run_with_qtoaster_static(
     if optimization_level :
         params["x-qtc-optimization"] = optimization_level
     converted = qobj_to_toaster(qobj_dict, {"all_experiments": False})
-    resultraw = run_simulation_via_http(
-        toaster_url, converted.encode("utf-8"), params, job_id,
-    )
+    if True:
+        resultraw = run_simulation_via_http(
+            toaster_url, converted.encode("utf-8"), params, job_id,
+        )
+    else:
+        resultraw = run_simulation_via_cli(
+            "qubit-toaster", converted.encode("utf-8"), params, job_id,
+        )
+
 
     success = resultraw is not None
     # print(success)
