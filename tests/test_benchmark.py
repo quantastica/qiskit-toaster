@@ -8,10 +8,10 @@ import os
 backend = ToasterBackend.get_backend("qasm_simulator")
 # backend = Aer.get_backend("qasm_simulator")
 default_options = {
-    #"method": "statevector",   # Force dense statevector method for benchmarks
-    #"truncate_enable": False,  # Disable unused qubit truncation for benchmarks
+    # "method": "statevector",   # Force dense statevector method for benchmarks
+    # "truncate_enable": False,  # Disable unused qubit truncation for benchmarks
     # "max_parallel_threads": 1,  # Disable OpenMP parallelization for benchmarks
-    "toaster_optimization": 3 # optimization for qubit-toaster
+    "toaster_optimization": 3  # optimization for qubit-toaster
 }
 
 # def _execute(circuit, backend_options=None):
@@ -85,12 +85,16 @@ def test_qcbm(name, backend, nqubits, optimization_level=None):
         f.write(circuit.qasm())
     t1 = time.time()
 
-
     # test = transpile(circuit, optimization_level=0)
     # qobj = assemble(circuit)
     # job = backend.run(qobj, backend_options=default_options)
 
-    job = execute(circuit, backend=backend, backend_options=default_options, optimization_level=optimization_level)
+    job = execute(
+        circuit,
+        backend=backend,
+        backend_options=default_options,
+        optimization_level=optimization_level,
+    )
 
     # job.result is needed in order to wait for results
     result = job.result()
@@ -99,16 +103,18 @@ def test_qcbm(name, backend, nqubits, optimization_level=None):
     # counts = result.get_counts(circuit)
     # print("Counts size: %d" % len(counts))
     print("  %s time: %f" % (name, t2 - t1))
-   
+
 
 if __name__ == "__main__":
     logging.basicConfig(
-    format="%(levelname)s %(asctime)s %(pathname)s - %(message)s",
-    level=os.environ.get("LOGLEVEL", "CRITICAL"),
+        format="%(levelname)s %(asctime)s %(pathname)s - %(message)s",
+        level=os.environ.get("LOGLEVEL", "CRITICAL"),
     )
-    N = int(os.environ.get("N",20))
-    LOOPS = int(os.environ.get("LOOPS",10))
-    for i in range(0,LOOPS):
-        print("Iteration #%d (of %d)"%(i,LOOPS))
-        test_qcbm("AER",Aer.get_backend("qasm_simulator"), N,0)
-        test_qcbm("TOASTER", ToasterBackend.get_backend("qasm_simulator"), N, 0)
+    N = int(os.environ.get("N", 20))
+    LOOPS = int(os.environ.get("LOOPS", 10))
+    for i in range(0, LOOPS):
+        print("Iteration #%d (of %d)" % (i, LOOPS))
+        test_qcbm("AER", Aer.get_backend("qasm_simulator"), N, 0)
+        test_qcbm(
+            "TOASTER", ToasterBackend.get_backend("qasm_simulator"), N, 0
+        )

@@ -25,18 +25,16 @@ class TestSpeed(common.TestToasterBase):
             qc,
             1,
         )
-        print("QFT25 toaster:",stats)
+        print("QFT25 toaster:", stats)
         logging.info("======= Ending our function =======")
 
     def test_qft25_aer(self):
         logging.info("======= Starting our function =======")
         qc = self.get_qft25_qc()
         stats = self.execute_and_get_stats(
-            Aer.get_backend("qasm_simulator"),
-            qc,
-            1,
+            Aer.get_backend("qasm_simulator"), qc, 1,
         )
-        print("QFT25 toaster:",stats)
+        print("QFT25 toaster:", stats)
         logging.info("======= Ending our function =======")
 
     @staticmethod

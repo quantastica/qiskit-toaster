@@ -16,27 +16,23 @@ import logging
 import json
 import time
 import copy
-import urllib
-from urllib import request
-import socket
 import os
 import sys
-import subprocess
 
 from quantastica.qconvert import qobj_to_toaster
-from quantastica.qiskit_toaster import ToasterHttpInterface, ToasterCliInterface
+from quantastica.qiskit_toaster import (
+    ToasterHttpInterface,
+    ToasterCliInterface,
+)
 
 from qiskit.providers import BaseJob, JobStatus, JobError
 from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
 
+
 def _run_with_qtoaster_static(
-    qobj_dict,
-    get_states,
-    toaster_url,
-    job_id,
-    optimization_level=None,
+    qobj_dict, get_states, toaster_url, job_id, optimization_level=None,
 ):
     SEED_SIMULATOR_KEY = "seed_simulator"
     if get_states:
@@ -71,7 +67,7 @@ def _run_with_qtoaster_static(
         returns=returns,
         seed=seed,
         optimization=optimization_level,
-        shots=shots
+        shots=shots,
     )
 
     if dump_dir is not None:
@@ -79,10 +75,9 @@ def _run_with_qtoaster_static(
         with open(path_res, "w") as f:
             f.write(str(toasterjson))
 
-
     resultraw = None
     if toasterjson:
-        resultraw=json.loads(toasterjson)
+        resultraw = json.loads(toasterjson)
 
     success = resultraw is not None
     # print(success)
@@ -164,7 +159,9 @@ class ToasterJob(BaseJob):
         optimization_level = None
         backend_options = self._backend_options
         if backend_options:
-            optimization_level = backend_options.get('toaster_optimization',None)
+            optimization_level = backend_options.get(
+                "toaster_optimization", None
+            )
 
         for exp in all_exps["experiments"]:
             exp_index += 1
@@ -178,7 +175,7 @@ class ToasterJob(BaseJob):
                     self._getstates,
                     self._toaster_url,
                     exp_job_id,
-                    optimization_level=optimization_level
+                    optimization_level=optimization_level,
                 )
             )
 

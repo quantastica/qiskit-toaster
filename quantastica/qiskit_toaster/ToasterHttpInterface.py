@@ -13,34 +13,35 @@
 import logging
 import urllib
 from urllib import request
-import json
-import os
 import time
 import socket
 
 
-
 logger = logging.getLogger(__name__)
+
 
 class ToasterHttpInterface:
     def __init__(self, toaster_url):
         self.toaster_url = toaster_url
 
-    def execute( self, jsonstr, 
+    def execute(
+        self,
+        jsonstr,
         job_id=None,
         seed=None,
         shots=None,
         returns=None,
-        optimization=None):
+        optimization=None,
+    ):
 
         params = dict()
         params["x-qtc-return"] = returns or "counts"
         params["x-qtc-shots"] = "%d" % (shots or 1)
         params["x-qtc-jobid"] = job_id or ""
         if seed:
-            params["x-qtc-seed"] = "%d"%seed
+            params["x-qtc-seed"] = "%d" % seed
         if optimization:
-            params["x-qtc-optimization"] = "%d"%optimization
+            params["x-qtc-optimization"] = "%d" % optimization
 
         logger.info("Sending circuit to toaster, url: %s", self.toaster_url)
         logger.info("Simulation params: %s", params)
@@ -74,7 +75,9 @@ class ToasterHttpInterface:
                     else:
                         break
                 else:
-                    raise RuntimeError("Error received from API(2): %s" % str(e))
+                    raise RuntimeError(
+                        "Error received from API(2): %s" % str(e)
+                    )
             except Exception:
                 if retry_count < max_retries:
                     retry_count += 1
