@@ -2,6 +2,7 @@ import unittest
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QuantumCircuit, execute, Aer
 from qiskit.compiler import transpile, assemble
+import os
 from math import pi
 
 try:
@@ -110,7 +111,8 @@ class TestToasterBackend(common.TestToasterBase):
         backend = self.toaster_backend()
         jobs = []
         for i in range(1, 50):
-            jobs.append(execute(qc, backend=backend, shots=1))
+            jobs.append(execute(qc, backend=backend, 
+                shots=1))
         for job in jobs:
             result = job.result()
             counts = result.get_counts(qc)
@@ -138,9 +140,10 @@ class TestToasterBackend(common.TestToasterBase):
                 self.toaster_backend(), qc, 1
             )
 
-    @staticmethod
-    def execute_and_get_stats(backend, qc, shots, seed=None):
-        job = execute(qc, backend=backend, shots=shots, seed_simulator=seed)
+    @classmethod
+    def execute_and_get_stats(cls, backend, qc, shots, seed=None):
+        job = execute(qc, backend=backend, shots=shots, 
+            seed_simulator=seed)
         job_result = job.result()
         counts = job_result.get_counts(qc)
         total_counts = 0

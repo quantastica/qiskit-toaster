@@ -37,8 +37,8 @@ class TestSpeed(common.TestToasterBase):
         print("QFT25 toaster:", stats)
         logging.info("======= Ending our function =======")
 
-    @staticmethod
-    def execute_and_get_stats(backend, qc, shots):
+    @classmethod
+    def execute_and_get_stats(cls, backend, qc, shots):
         job = execute(
             qc,
             optimization_level=0,

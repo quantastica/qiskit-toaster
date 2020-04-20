@@ -31,8 +31,11 @@ from qiskit.result import Result
 logger = logging.getLogger(__name__)
 
 
+# one of toaster_url or toaster_path MUST be defined
+# if both are defined toaster_path takes precedence
 def _run_with_qtoaster_static(
-    qobj_dict, get_states, toaster_url, job_id, optimization_level=None,
+    qobj_dict, get_states, job_id, optimization_level=None,
+    toaster_url=None, toaster_path=None
 ):
     SEED_SIMULATOR_KEY = "seed_simulator"
     if get_states:
@@ -55,13 +58,12 @@ def _run_with_qtoaster_static(
         path_req = "%s/%s.request.json" % (dump_dir, job_id)
         with open(path_req, "w") as f:
             f.write(converted)
-
-    if os.getenv("TOASTER_USE_CLI", 0) == 0:
-        http = ToasterHttpInterface.ToasterHttpInterface(toaster_url)
+    if toaster_path:
+        toaster = ToasterCliInterface.ToasterCliInterface(toaster_path)
     else:
-        http = ToasterCliInterface.ToasterCliInterface("qubit-toaster")
+        toaster = ToasterHttpInterface.ToasterHttpInterface(toaster_url)
 
-    toasterjson = http.execute(
+    toasterjson = toaster.execute(
         converted.encode("utf-8"),
         job_id=job_id,
         returns=returns,
@@ -69,7 +71,6 @@ def _run_with_qtoaster_static(
         optimization=optimization_level,
         shots=shots,
     )
-
     if dump_dir is not None:
         path_res = "%s/%s.response.json" % (dump_dir, job_id)
         with open(path_res, "w") as f:
@@ -139,6 +140,7 @@ class ToasterJob(BaseJob):
         toaster_port,
         getstates=False,
         backend_options=None,
+        use_cli=False
     ):
         super().__init__(backend, job_id)
         self._toaster_url = "http://%s:%d" % (toaster_host, int(toaster_port))
@@ -147,6 +149,7 @@ class ToasterJob(BaseJob):
         self._futures = []
         self._getstates = getstates
         self._backend_options = backend_options
+        self._use_cli=use_cli
 
     def submit(self):
         if len(self._futures) > 0:
@@ -163,6 +166,10 @@ class ToasterJob(BaseJob):
                 "toaster_optimization", None
             )
 
+        toaster_path = None
+        if int(self._use_cli) is not 0:
+            toaster_path = 'qubit-toaster'
+
         for exp in all_exps["experiments"]:
             exp_index += 1
             exp_job_id = "Exp_%d_%s" % (exp_index, self._job_id)
@@ -173,9 +180,10 @@ class ToasterJob(BaseJob):
                     _run_with_qtoaster_static,
                     single_exp,
                     self._getstates,
-                    self._toaster_url,
                     exp_job_id,
                     optimization_level=optimization_level,
+                    toaster_url=self._toaster_url,
+                    toaster_path=toaster_path
                 )
             )
 
