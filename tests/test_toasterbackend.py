@@ -138,8 +138,8 @@ class TestToasterBackend(common.TestToasterBase):
                 self.toaster_backend(), qc, 1
             )
 
-    @staticmethod
-    def execute_and_get_stats(backend, qc, shots, seed=None):
+    @classmethod
+    def execute_and_get_stats(cls, backend, qc, shots, seed=None):
         job = execute(qc, backend=backend, shots=shots, seed_simulator=seed)
         job_result = job.result()
         counts = job_result.get_counts(qc)

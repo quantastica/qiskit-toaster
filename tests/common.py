@@ -13,6 +13,7 @@ class TestToasterBase(unittest.TestCase):
             backend_name,
             toaster_host=os.getenv("TOASTER_HOST", None),
             toaster_port=os.getenv("TOASTER_PORT", None),
+            use_cli=os.getenv("USE_CLI", False),
         )
 
     @classmethod

@@ -16,13 +16,14 @@ import logging
 import json
 import time
 import copy
-import urllib
-from urllib import request
-import socket
 import os
 import sys
 
 from quantastica.qconvert import qobj_to_toaster
+from quantastica.qiskit_toaster import (
+    ToasterHttpInterface,
+    ToasterCliInterface,
+)
 
 from qiskit.providers import BaseJob, JobStatus, JobError
 from qiskit.result import Result
@@ -30,118 +31,58 @@ from qiskit.result import Result
 logger = logging.getLogger(__name__)
 
 
-def fetch_last_response(toaster_url, timeout, job_id):
-    req = request.Request("%s/pollresult/%s" % (toaster_url, job_id))
-    txt = None
-    while True:
-        try:
-            response = request.urlopen(req, timeout=timeout)
-        except urllib.error.HTTPError as e:
-            raise RuntimeError("Error received from API(1): %s" % str(e))
-        except (socket.timeout, urllib.error.URLError) as e:
-            logger.debug("Exception raised: %s", e)
-            time.sleep(0.2)
-            continue
-        else:
-            txt = response.read().decode("utf8")
-            break
-
-    return txt
-
-
-def run_simulation_via_http(toaster_url, jsonstr, params, job_id):
-    logger.info("Sending circuit to toaster, url: %s", toaster_url)
-    logger.info("Simulation params: %s", params)
-    timeout = None
-    params["content-type"] = "application/json"
-    req = request.Request(
-        toaster_url + "/submit", data=jsonstr, headers=params
-    )
-    txt = None
-    res = None
-    max_retries = 5
-    retry_count = 0
-
-    dump_dir = os.getenv("TOASTER_DUMP_DIR", None)
-    if dump_dir is not None:
-        path_req = "%s/%s.request.json" % (dump_dir, job_id)
-        with open(path_req, "w") as f:
-            f.write(jsonstr.decode("utf-8"))
-
-    while True:
-        try:
-            response = request.urlopen(req, timeout=timeout)
-        except socket.timeout as e:
-            logger.debug("Exception raised: %s", e)
-            txt = fetch_last_response(toaster_url, timeout, job_id)
-            if txt is None:
-                continue
-            else:
-                break
-        except urllib.error.HTTPError as e:
-            logger.debug("Exception raised: %s", e)
-            # already submitted, lets fetch results
-            if e.code == 409:
-                txt = fetch_last_response(toaster_url, timeout, job_id)
-                if txt is None:
-                    continue
-                else:
-                    break
-            else:
-                raise RuntimeError("Error received from API(2): %s" % str(e))
-        except Exception:
-            if retry_count < max_retries:
-                retry_count += 1
-                logger.debug(
-                    "Connection failed, retrying (#%d)...", retry_count
-                )
-                time.sleep(0.2)
-            else:
-                msg = (
-                    "Failed to connect to qubit-toaster, probably not running (url: %s)"
-                    % toaster_url
-                )
-                logger.critical(msg)
-                raise RuntimeError(msg)
-        else:
-            txt = response.read().decode("utf8")
-            break
-
-    if dump_dir is not None:
-        path_res = "%s/%s.response.json" % (dump_dir, job_id)
-        with open(path_res, "w") as f:
-            f.write(str(txt))
-
-    if txt:
-        res = json.loads(txt)
-    return res
-
-
-def _run_with_qtoaster_static(qobj_dict, get_states, toaster_url, job_id):
+# one of toaster_url or toaster_path MUST be defined
+# if both are defined toaster_path takes precedence
+def _run_with_qtoaster_static(
+    qobj_dict,
+    get_states,
+    job_id,
+    optimization_level=None,
+    toaster_url=None,
+    toaster_path=None,
+):
     SEED_SIMULATOR_KEY = "seed_simulator"
     if get_states:
         shots = 1
     else:
         shots = qobj_dict["config"]["shots"]
 
-    params = dict()
-    params["x-qtc-return"] = "counts"
-    params["x-qtc-shots"] = "%d" % shots
-    params["x-qtc-jobid"] = job_id
-
+    returns = "counts"
     if get_states:
-        params["x-qtc-return"] += ",statevector"
+        returns += ",state"
 
     seed = 0
     if SEED_SIMULATOR_KEY in qobj_dict["config"]:
         seed = qobj_dict["config"][SEED_SIMULATOR_KEY]
-        params["x-qtc-seed"] = seed
 
     converted = qobj_to_toaster(qobj_dict, {"all_experiments": False})
 
-    resultraw = run_simulation_via_http(
-        toaster_url, converted.encode("utf-8"), params, job_id,
+    dump_dir = os.getenv("TOASTER_DUMP_DIR", None)
+    if dump_dir is not None:
+        path_req = "%s/%s.request.json" % (dump_dir, job_id)
+        with open(path_req, "w") as f:
+            f.write(converted)
+    if toaster_path:
+        toaster = ToasterCliInterface.ToasterCliInterface(toaster_path)
+    else:
+        toaster = ToasterHttpInterface.ToasterHttpInterface(toaster_url)
+
+    toasterjson = toaster.execute(
+        converted.encode("utf-8"),
+        job_id=job_id,
+        returns=returns,
+        seed=seed,
+        optimization=optimization_level,
+        shots=shots,
     )
+    if dump_dir is not None:
+        path_res = "%s/%s.response.json" % (dump_dir, job_id)
+        with open(path_res, "w") as f:
+            f.write(str(toasterjson))
+
+    resultraw = None
+    if toasterjson:
+        resultraw = json.loads(toasterjson)
 
     success = resultraw is not None
     # print(success)
@@ -161,7 +102,6 @@ def _run_with_qtoaster_static(qobj_dict, get_states, toaster_url, job_id):
                 "Unsupported qtoaster_version, got '%s' - minimum expected is '%s'.\n\rPlease update your q-toaster to latest version"
                 % (rawversion, ToasterJob._MINQTOASTERVERSION)
             )
-
         counts = ToasterJob._convert_counts(resultraw["counts"])
         statevector = resultraw.get("statevector")
         data["counts"] = counts
@@ -203,6 +143,8 @@ class ToasterJob(BaseJob):
         toaster_host,
         toaster_port,
         getstates=False,
+        backend_options=None,
+        use_cli=False,
     ):
         super().__init__(backend, job_id)
         self._toaster_url = "http://%s:%d" % (toaster_host, int(toaster_port))
@@ -210,6 +152,8 @@ class ToasterJob(BaseJob):
         self._qobj_dict = qobj.to_dict()
         self._futures = []
         self._getstates = getstates
+        self._backend_options = backend_options
+        self._use_cli = use_cli
 
     def submit(self):
         if len(self._futures) > 0:
@@ -219,6 +163,17 @@ class ToasterJob(BaseJob):
         logger.debug("submitting...")
         all_exps = self._qobj_dict
         exp_index = 0
+        optimization_level = None
+        backend_options = self._backend_options
+        if backend_options:
+            optimization_level = backend_options.get(
+                "toaster_optimization", None
+            )
+
+        toaster_path = None
+        if int(self._use_cli) != 0:
+            toaster_path = "qubit-toaster"
+
         for exp in all_exps["experiments"]:
             exp_index += 1
             exp_job_id = "Exp_%d_%s" % (exp_index, self._job_id)
@@ -229,8 +184,10 @@ class ToasterJob(BaseJob):
                     _run_with_qtoaster_static,
                     single_exp,
                     self._getstates,
-                    self._toaster_url,
                     exp_job_id,
+                    optimization_level=optimization_level,
+                    toaster_url=self._toaster_url,
+                    toaster_path=toaster_path,
                 )
             )
 
