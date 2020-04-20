@@ -34,8 +34,12 @@ logger = logging.getLogger(__name__)
 # one of toaster_url or toaster_path MUST be defined
 # if both are defined toaster_path takes precedence
 def _run_with_qtoaster_static(
-    qobj_dict, get_states, job_id, optimization_level=None,
-    toaster_url=None, toaster_path=None
+    qobj_dict,
+    get_states,
+    job_id,
+    optimization_level=None,
+    toaster_url=None,
+    toaster_path=None,
 ):
     SEED_SIMULATOR_KEY = "seed_simulator"
     if get_states:
@@ -140,7 +144,7 @@ class ToasterJob(BaseJob):
         toaster_port,
         getstates=False,
         backend_options=None,
-        use_cli=False
+        use_cli=False,
     ):
         super().__init__(backend, job_id)
         self._toaster_url = "http://%s:%d" % (toaster_host, int(toaster_port))
@@ -149,7 +153,7 @@ class ToasterJob(BaseJob):
         self._futures = []
         self._getstates = getstates
         self._backend_options = backend_options
-        self._use_cli=use_cli
+        self._use_cli = use_cli
 
     def submit(self):
         if len(self._futures) > 0:
@@ -167,8 +171,8 @@ class ToasterJob(BaseJob):
             )
 
         toaster_path = None
-        if int(self._use_cli) is not 0:
-            toaster_path = 'qubit-toaster'
+        if int(self._use_cli) != 0:
+            toaster_path = "qubit-toaster"
 
         for exp in all_exps["experiments"]:
             exp_index += 1
@@ -183,7 +187,7 @@ class ToasterJob(BaseJob):
                     exp_job_id,
                     optimization_level=optimization_level,
                     toaster_url=self._toaster_url,
-                    toaster_path=toaster_path
+                    toaster_path=toaster_path,
                 )
             )
 

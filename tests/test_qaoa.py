@@ -89,7 +89,7 @@ class TestQAOA(common.TestToasterBase):
             shots=1024,
             seed_simulator=seed,
             seed_transpiler=seed,
-            optimization_level=0
+            optimization_level=0,
         )
         result = qaoa.run(quantum_instance)
 

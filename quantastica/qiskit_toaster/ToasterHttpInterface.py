@@ -51,7 +51,6 @@ class ToasterHttpInterface:
             self.toaster_url + "/submit", data=jsonstr, headers=params
         )
         txt = None
-        res = None
         max_retries = 5
         retry_count = 0
 

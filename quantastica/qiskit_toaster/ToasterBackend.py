@@ -59,7 +59,7 @@ class ToasterBackend(BaseBackend):
         backend_name=None,
         toaster_host=None,
         toaster_port=None,
-        use_cli=False
+        use_cli=False,
     ):
         configuration = configuration or BackendConfiguration.from_dict(
             self.DEFAULT_CONFIGURATION
@@ -84,7 +84,7 @@ class ToasterBackend(BaseBackend):
         self._toaster_host = (
             toaster_host or ToasterBackend.DEFAULT_TOASTER_HOST
         )
-        self._use_cli=use_cli
+        self._use_cli = use_cli
 
     # @profile
     def run(self, qobj, backend_options=None):
@@ -97,7 +97,7 @@ class ToasterBackend(BaseBackend):
             toaster_host=self._toaster_host,
             toaster_port=self._toaster_port,
             backend_options=backend_options,
-            use_cli=self._use_cli
+            use_cli=self._use_cli,
         )
         job.submit()
         return job
@@ -107,11 +107,12 @@ class ToasterBackend(BaseBackend):
         return "qubit_toaster"
 
 
-def get_backend(backend_name=None, toaster_host=None, 
-    toaster_port=None, use_cli=False):
+def get_backend(
+    backend_name=None, toaster_host=None, toaster_port=None, use_cli=False
+):
     return ToasterBackend(
         backend_name=backend_name,
         toaster_host=toaster_host,
         toaster_port=toaster_port,
-        use_cli=use_cli
+        use_cli=use_cli,
     )
