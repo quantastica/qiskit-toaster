@@ -24,152 +24,12 @@ import sys
 import subprocess
 
 from quantastica.qconvert import qobj_to_toaster
+from quantastica.qiskit_toaster import ToasterHttpInterface, ToasterCliInterface
 
 from qiskit.providers import BaseJob, JobStatus, JobError
 from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
-
-
-def fetch_last_response(toaster_url, timeout, job_id):
-    req = request.Request("%s/pollresult/%s" % (toaster_url, job_id))
-    txt = None
-    while True:
-        try:
-            response = request.urlopen(req, timeout=timeout)
-        except urllib.error.HTTPError as e:
-            raise RuntimeError("Error received from API(1): %s" % str(e))
-        except (socket.timeout, urllib.error.URLError) as e:
-            logger.debug("Exception raised: %s", e)
-            time.sleep(0.2)
-            continue
-        else:
-            txt = response.read().decode("utf8")
-            break
-
-    return txt
-
-def run_simulation_via_cli(toaster_path, jsonstr, params, job_id):
-    args = [
-        toaster_path,
-        "-",
-        '-s',
-        params.get('x-qtc-shots','1')
-    ]
-    returns = params.get('x-qtc-return','counts').split(",")
-    args.append("-r")
-    args += returns
-
-    if 'x-qtc-seed' in params:
-        args.append('--seed')
-        args.append(str(params['x-qtc-seed']))
-    if 'x-qtc-optimization' in params:
-        args.append('-o')
-        args.append(str(params['x-qtc-optimization']))
-    
-    # if get_states:
-    #     args.append("-r")
-    #     args.append("state")
-    # seed = 0
-    # if SEED_SIMULATOR_KEY in qobj_dict['config']:
-    #     seed = qobj_dict['config'][SEED_SIMULATOR_KEY]
-    #     args.append("--seed")
-    #     args.append("%d"%seed)
-    proc = subprocess.Popen(
-        args,
-        close_fds = False,
-        restore_signals = False,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE )
-
-    logger.info("Running q-toaster with following params:")
-    logger.info(args)
-    proc.stdin.write(jsonstr)
-    proc.stdin.close()
-    proc.wait()
-    qtoasterjson = proc.stdout.read()
-    proc.stdout.close()
-    stderr = proc.stderr.read()
-    proc.stderr.close()
-    returncode = proc.returncode
-    if returncode is 0:
-        resultraw = json.loads(qtoasterjson)
-    else:
-        logger.debug("Toaster finished with non-zero exit code (%d) :"%returncode,
-            stderr)
-        raise RuntimeError("Error received from CLI, exit code: %d"%returncode)
-
-    return resultraw
-
-
-def run_simulation_via_http(toaster_url, jsonstr, params, job_id):
-    logger.info("Sending circuit to toaster, url: %s", toaster_url)
-    logger.info("Simulation params: %s", params)
-    timeout = None
-    params["content-type"] = "application/json"
-    req = request.Request(
-        toaster_url + "/submit", data=jsonstr, headers=params
-    )
-    txt = None
-    res = None
-    max_retries = 5
-    retry_count = 0
-
-    dump_dir = os.getenv("TOASTER_DUMP_DIR", None)
-    if dump_dir is not None:
-        path_req = "%s/%s.request.json" % (dump_dir, job_id)
-        with open(path_req, "w") as f:
-            f.write(jsonstr.decode("utf-8"))
-
-    while True:
-        try:
-            response = request.urlopen(req, timeout=timeout)
-        except socket.timeout as e:
-            logger.debug("Exception raised: %s", e)
-            txt = fetch_last_response(toaster_url, timeout, job_id)
-            if txt is None:
-                continue
-            else:
-                break
-        except urllib.error.HTTPError as e:
-            logger.debug("Exception raised: %s", e)
-            # already submitted, lets fetch results
-            if e.code == 409:
-                txt = fetch_last_response(toaster_url, timeout, job_id)
-                if txt is None:
-                    continue
-                else:
-                    break
-            else:
-                raise RuntimeError("Error received from API(2): %s" % str(e))
-        except Exception:
-            if retry_count < max_retries:
-                retry_count += 1
-                logger.debug(
-                    "Connection failed, retrying (#%d)...", retry_count
-                )
-                time.sleep(0.2)
-            else:
-                msg = (
-                    "Failed to connect to qubit-toaster, probably not running (url: %s)"
-                    % toaster_url
-                )
-                logger.critical(msg)
-                raise RuntimeError(msg)
-        else:
-            txt = response.read().decode("utf8")
-            break
-
-    if dump_dir is not None:
-        path_res = "%s/%s.response.json" % (dump_dir, job_id)
-        with open(path_res, "w") as f:
-            f.write(str(txt))
-
-    if txt:
-        res = json.loads(txt)
-    return res
-
 
 def _run_with_qtoaster_static(
     qobj_dict,
@@ -184,30 +44,45 @@ def _run_with_qtoaster_static(
     else:
         shots = qobj_dict["config"]["shots"]
 
-    params = dict()
-    params["x-qtc-return"] = "counts"
-    params["x-qtc-shots"] = "%d" % shots
-    params["x-qtc-jobid"] = job_id
-
+    returns = "counts"
     if get_states:
-        params["x-qtc-return"] += ",state"
+        returns += ",state"
 
     seed = 0
     if SEED_SIMULATOR_KEY in qobj_dict["config"]:
         seed = qobj_dict["config"][SEED_SIMULATOR_KEY]
-        params["x-qtc-seed"] = seed
 
-    if optimization_level :
-        params["x-qtc-optimization"] = optimization_level
     converted = qobj_to_toaster(qobj_dict, {"all_experiments": False})
+
+    dump_dir = os.getenv("TOASTER_DUMP_DIR", None)
+    if dump_dir is not None:
+        path_req = "%s/%s.request.json" % (dump_dir, job_id)
+        with open(path_req, "w") as f:
+            f.write(converted)
+
     if os.getenv("TOASTER_USE_CLI", 0) == 0:
-        resultraw = run_simulation_via_http(
-            toaster_url, converted.encode("utf-8"), params, job_id,
-        )
+        http = ToasterHttpInterface.ToasterHttpInterface(toaster_url)
     else:
-        resultraw = run_simulation_via_cli(
-            "qubit-toaster", converted.encode("utf-8"), params, job_id,
-        )
+        http = ToasterCliInterface.ToasterCliInterface("qubit-toaster")
+
+    toasterjson = http.execute(
+        converted.encode("utf-8"),
+        job_id=job_id,
+        returns=returns,
+        seed=seed,
+        optimization=optimization_level,
+        shots=shots
+    )
+
+    if dump_dir is not None:
+        path_res = "%s/%s.response.json" % (dump_dir, job_id)
+        with open(path_res, "w") as f:
+            f.write(str(toasterjson))
+
+
+    resultraw = None
+    if toasterjson:
+        resultraw=json.loads(toasterjson)
 
     success = resultraw is not None
     # print(success)
