@@ -96,7 +96,7 @@ class ToasterHttpInterface:
                 txt = response.read().decode("utf8")
                 break
 
-        return res
+        return txt
 
     def _fetch_last_response(self, timeout, job_id):
         req = request.Request("%s/pollresult/%s" % (self.toaster_url, job_id))
