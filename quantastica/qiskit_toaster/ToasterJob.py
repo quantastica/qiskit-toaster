@@ -80,7 +80,8 @@ def run_simulation_via_cli(toaster_path, jsonstr, params, job_id):
         close_fds = False,
         restore_signals = False,
         stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE )
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE )
 
     logger.info("Running q-toaster with following params:")
     logger.info(args)
@@ -89,7 +90,15 @@ def run_simulation_via_cli(toaster_path, jsonstr, params, job_id):
     proc.wait()
     qtoasterjson = proc.stdout.read()
     proc.stdout.close()
-    resultraw = json.loads(qtoasterjson)
+    stderr = proc.stderr.read()
+    proc.stderr.close()
+    returncode = proc.returncode
+    if returncode is 0:
+        resultraw = json.loads(qtoasterjson)
+    else:
+        logger.debug("Toaster finished with non-zero exit code (%d) :"%returncode,
+            stderr)
+        raise RuntimeError("Error received from CLI, exit code: %d"%returncode)
 
     return resultraw
 
@@ -191,7 +200,7 @@ def _run_with_qtoaster_static(
     if optimization_level :
         params["x-qtc-optimization"] = optimization_level
     converted = qobj_to_toaster(qobj_dict, {"all_experiments": False})
-    if True:
+    if os.getenv("TOASTER_USE_CLI", 0) == 0:
         resultraw = run_simulation_via_http(
             toaster_url, converted.encode("utf-8"), params, job_id,
         )
@@ -199,7 +208,6 @@ def _run_with_qtoaster_static(
         resultraw = run_simulation_via_cli(
             "qubit-toaster", converted.encode("utf-8"), params, job_id,
         )
-
 
     success = resultraw is not None
     # print(success)
