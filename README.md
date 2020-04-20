@@ -68,7 +68,12 @@ backend = ToasterBackend.get_backend("qasm_simulator")
 job = execute(qc, backend=backend)
 # To speed things up a little bit qiskit's optimization can be disabled
 # by setting optimization_level to 0 like following:
-# job = execute(qc, backend=backend, optimization_level=0)
+#   job = execute(qc, backend=backend, optimization_level=0)
+#
+# To pass different optimization level to qubit-toaster use backend_options:
+#   options = { "toaster_optimization": 3 }
+#   job = execute(qc, backend=backend, backend_options=options)
+
 job_result = job.result()
 
 print(job_result.get_counts(qc))
@@ -97,6 +102,12 @@ ToasterBackend.get_backend( backend_name = None,
 - `toaster_host` - ip address of machine running `qubit-toaster` simulator
 - `toaster_port` - port that `qubit-toaster` is listening on
 - `use_cli` - if this param is set to `True` the `qubit-toaster` will be used directly (by invoking it as executable) instead via HTTP API. For this to work the `qubit-toaster` binary must be available somewhere in system PATH
+
+### Toaster's backend_options
+  - `toaster_optimization` - integer from 0 to 7
+    - 0 - automatic optimization
+    - 1 - optimization is off
+    - 7 - highest optimization
 
 ## Running unit tests
 
