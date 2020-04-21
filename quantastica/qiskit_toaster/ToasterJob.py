@@ -125,7 +125,7 @@ def _run_with_qtoaster_static(
 
 
 class ToasterJob(BaseJob):
-    DEFAULT_TOASTER_HOST = "localhost"
+    DEFAULT_TOASTER_HOST = "127.0.0.1"
     DEFAULT_TOASTER_PORT = 8001
     _MINQTOASTERVERSION = "0.9.9"
 
