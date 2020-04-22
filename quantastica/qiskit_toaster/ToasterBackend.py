@@ -13,6 +13,7 @@
 
 import uuid
 from quantastica.qiskit_toaster import ToasterJob
+from quantastica import qconvert
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendConfiguration
 
@@ -36,19 +37,7 @@ class ToasterBackend(BaseBackend):
         "max_shots": 65536,
         "description": "An q-toaster based qasm simulator",
         "coupling_map": None,
-        "basis_gates": [
-            "u1",
-            "u2",
-            "u3",
-            "cx",
-            "id",
-            "x",
-            "y",
-            "z",
-            "h",
-            "s",
-            "t",
-        ],
+        "basis_gates": qconvert.supported_gates(),
         "gates": [],
     }
 

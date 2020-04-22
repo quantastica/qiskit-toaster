@@ -196,6 +196,5 @@ class TestToasterBackend(common.TestToasterBase):
         qc.z(q[2]).c_if(c0, 1)
         return qc
 
-
 if __name__ == "__main__":
     unittest.main()
