@@ -1,0 +1,34 @@
+name: Mac
+
+on:
+    push:
+      # Sequence of patterns matched against refs/tags
+      tags:
+      - 'v*' 
+jobs:
+  build:
+
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup toaster
+      run: |
+        curl https://quantastica.com/toaster/install | ACCEPT_EULA=1 /bin/sh
+        qubit-toaster --help
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - name: Cache pip
+      uses: actions/cache@v1
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ runner.os }}-pip-qiskittoaster
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-        
+    - name: Install dependencies
+      run: pip install qiskit quantastica-qconvert
+    - name: Run tests (using CLI toaster)
+      run: USE_CLI=1 python -m unittest -v
