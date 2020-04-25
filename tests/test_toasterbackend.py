@@ -88,7 +88,8 @@ class TestToasterBackend(common.TestToasterBase):
             qc,
             shots,
         )
-
+        print("\nToaster:",stats)
+        print("Aer:",stats_aer)
         self.assertEqual(len(stats["counts"]), len(stats_aer["counts"]))
         self.assertEqual(
             len(stats["statevector"]), len(stats_aer["statevector"])
