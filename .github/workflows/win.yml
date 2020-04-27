@@ -25,6 +25,7 @@ jobs:
     - name: Echo path
       run: |
         echo "$PATH"
+      shell: bash
     - name: Check Toaster
       run: |
         echo "Checking qubit-toaster..."
