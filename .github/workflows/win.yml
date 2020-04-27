@@ -20,7 +20,7 @@ jobs:
     - name: Setup toaster
       run: |
         curl https://dl.dropboxusercontent.com/s/kku49pjfkvxl2pm/Qubit-Toaster-Installer.exe?dl=1 > Qubit-Toaster-Installer.exe
-        Qubit-Toaster-Installer.exe //VERYSILENT
+        ./Qubit-Toaster-Installer.exe //VERYSILENT
       shell: bash
     - name: Check Toaster
       run: qubit-toaster --help
