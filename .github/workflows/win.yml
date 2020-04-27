@@ -23,7 +23,9 @@ jobs:
         ./Qubit-Toaster-Installer.exe //VERYSILENT
       shell: bash
     - name: Check Toaster
-      run: qubit-toaster --help
+      run: |
+        echo "Checking qubit-toaster..."
+        qubit-toaster --help
       shell: bash
     - name: Set up Python
       uses: actions/setup-python@v1
