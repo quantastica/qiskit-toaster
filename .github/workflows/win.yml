@@ -22,7 +22,9 @@ jobs:
         curl https://dl.dropboxusercontent.com/s/kku49pjfkvxl2pm/Qubit-Toaster-Installer.exe?dl=1 > Qubit-Toaster-Installer.exe
         ./Qubit-Toaster-Installer.exe //VERYSILENT //DIR=.
         ls -l .
-        pwd
+        THIS_DIR=`pwd`
+        echo "Current dir: $THIS_DIR"
+        echo "::add-path::$THIS_DIR"
       shell: bash
     - name: Echo path
       run: |
@@ -31,7 +33,7 @@ jobs:
     - name: Check Toaster
       run: |
         echo "Checking qubit-toaster..."
-        ./qubit-toaster.exe --help
+        qubit-toaster.exe --help
       shell: bash
     - name: Set up Python
       uses: actions/setup-python@v1
