@@ -19,7 +19,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Setup toaster
       run: |
-        curl https://dl.dropboxusercontent.com/s/kku49pjfkvxl2pm/Qubit-Toaster-Installer.exe?dl=1 > Qubit-Toaster-Installer.exe
+        curl https://quantastica.com/toaster/bundle/Qubit-Toaster-Installer.exe > Qubit-Toaster-Installer.exe
         ./Qubit-Toaster-Installer.exe //VERYSILENT //DIR=.
         ls -l .
         THIS_DIR=`pwd`
