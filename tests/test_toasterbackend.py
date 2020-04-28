@@ -88,12 +88,18 @@ class TestToasterBackend(common.TestToasterBase):
             qc,
             shots,
         )
-
-        self.assertEqual(len(stats["counts"]), len(stats_aer["counts"]))
+        self.assertEqual(len(stats["counts"]), 1)
+        self.assertEqual(stats["totalcounts"], 1)
         self.assertEqual(
             len(stats["statevector"]), len(stats_aer["statevector"])
         )
-        self.assertEqual(stats["totalcounts"], stats_aer["totalcounts"])
+
+        # From qiskit 0.18.3 there seems to be bug in qiskit
+        # on Mac it returns 8 counts on Linux 4
+        # but for statevector_simulator it should return 1
+        # disabling following tests until that is fixed
+        # self.assertEqual(stats_aer["totalcounts"], 1)
+        # self.assertEqual(len(stats_aer["counts"]),1)
 
         """
         Let's verify that tests are working as expected

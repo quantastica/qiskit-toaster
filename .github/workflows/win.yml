@@ -1,0 +1,59 @@
+name: Windows
+
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - 'v*' 
+    - 'winv*'
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  build:
+
+    runs-on: windows-2019
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup toaster
+      run: |
+        curl https://quantastica.com/toaster/bundle/Qubit-Toaster-Installer.exe > Qubit-Toaster-Installer.exe
+        ./Qubit-Toaster-Installer.exe //VERYSILENT //DIR=.
+        ls -l .
+        THIS_DIR=`pwd`
+        echo "Current dir: $THIS_DIR"
+        echo "::add-path::$THIS_DIR"
+      shell: bash
+    - name: Echo path
+      run: |
+        echo "$PATH"
+      shell: bash
+    - name: Check Toaster
+      run: |
+        echo "Checking qubit-toaster..."
+        qubit-toaster.exe --help
+      shell: bash
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - name: Cache pip
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip 
+        key: ${{ runner.os }}-pip-qiskittoaster
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-        
+    - name: Install dependencies
+      run: pip install qiskit quantastica-qconvert
+    - name: Run tests (using toaster via CLI)
+      run: USE_CLI=1 python -m unittest -v
+      shell: bash
+    - name: Run tests (using toaster via HTTP)
+      run: |
+        qubit-toaster -S &
+        python -m unittest -v
+      shell: bash
