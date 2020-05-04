@@ -5,6 +5,7 @@ on:
     # Sequence of patterns matched against refs/tags
     tags:
     - 'v*' 
+    - 'linuxv*'
   pull_request:
     branches:
     - master
