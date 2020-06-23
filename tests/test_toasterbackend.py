@@ -144,6 +144,19 @@ class TestToasterBackend(common.TestToasterBase):
                 self.toaster_backend(), qc, 1
             )
 
+    def test_larger_circuit_statevector(self):
+        n = 19
+        qc = QuantumCircuit()
+        q = QuantumRegister(n, 'q')
+        #c = ClassicalRegister(n, 'c')
+        qc.add_register(q)
+        #qc.add_register(c)
+        for i in range(n):
+            qc.h(i)
+        TestToasterBackend.execute_and_get_stats(
+            self.toaster_backend('statevector_simulator'), qc, 1
+        )
+
     @classmethod
     def execute_and_get_stats(cls, backend, qc, shots, seed=None):
         job = execute(qc, backend=backend, shots=shots, seed_simulator=seed)

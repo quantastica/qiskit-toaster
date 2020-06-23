@@ -56,13 +56,7 @@ class ToasterCliInterface:
 
         logger.info("Running q-toaster with following params:")
         logger.info(args)
-        proc.stdin.write(jsonstr)
-        proc.stdin.close()
-        proc.wait()
-        qtoasterjson = proc.stdout.read()
-        proc.stdout.close()
-        stderr = proc.stderr.read()
-        proc.stderr.close()
+        qtoasterjson, stderr = proc.communicate(input=jsonstr)
         returncode = proc.returncode
         if returncode > 0:
             logger.debug(
