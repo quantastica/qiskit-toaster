@@ -34,7 +34,7 @@ jobs:
           ${{ runner.os }}-pip-
           ${{ runner.os }}-        
     - name: Install dependencies
-      run: pip install qiskit quantastica-qconvert cvxpy
+      run: pip install qiskit quantastica-qconvert
     - name: Run tests (using toaster via CLI)
       run: USE_CLI=1 python -m unittest -v
     - name: Run tests (using toaster via HTTP)
