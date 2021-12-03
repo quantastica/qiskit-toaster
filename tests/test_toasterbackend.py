@@ -125,9 +125,7 @@ class TestToasterBackend(common.TestToasterBase):
     def test_multiple_experiments(self):
         backend = self.toaster_backend()
         qc_list = [self.get_bell_qc(), self.get_teleport_qc()]
-        transpiled = transpile(qc_list, backend=backend)
-        qobjs = assemble(transpiled, backend=backend, shots=4096)
-        job_info = backend.run(qobjs)
+        job_info = backend.run(qc_list)
         bell_counts = job_info.result().get_counts("Bell")
         tel_counts = job_info.result().get_counts("Teleport")
         self.assertEqual(len(bell_counts), 2)
