@@ -17,6 +17,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
+    - name: Add home directory to path
+      run: echo "${HOME}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
     - name: Setup toaster
       run: |
         curl https://quantastica.com/toaster/bundle/Qubit-Toaster-Installer.exe > Qubit-Toaster-Installer.exe
@@ -24,7 +26,6 @@ jobs:
         ls -l .
         THIS_DIR=`pwd`
         echo "Current dir: $THIS_DIR"
-        echo "::add-path::$THIS_DIR"
       shell: bash
     - name: Echo path
       run: |
