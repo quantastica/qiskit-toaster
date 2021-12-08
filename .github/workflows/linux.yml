@@ -25,6 +25,8 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: '3.x'
+    - name: Upgrade pip
+      run: pip install --upgrade pip
     - name: Cache pip
       uses: actions/cache@v1
       with:
@@ -33,8 +35,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
           ${{ runner.os }}-        
-    - name: Upgrade pip
-      run: pip install --upgrade pip
     - name: Install dependencies
       run: pip install qiskit quantastica-qconvert
     - name: Run tests (using toaster via CLI)
