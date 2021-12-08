@@ -1,6 +1,7 @@
 import unittest
 from qiskit import QuantumRegister
-from qiskit import QuantumCircuit, execute, Aer
+from qiskit import QuantumCircuit, execute
+from qiskit.providers.aer import AerSimulator
 import numpy as np
 import logging
 import os
@@ -31,8 +32,9 @@ class TestSpeed(common.TestToasterBase):
     def test_qft25_aer(self):
         logging.info("======= Starting our function =======")
         qc = self.get_qft25_qc()
+        qc.save_state()
         stats = self.execute_and_get_stats(
-            Aer.get_backend("qasm_simulator"), qc, 1,
+            AerSimulator(method="statevector"), qc, 1,
         )
         print("QFT25 toaster:", stats)
         logging.info("======= Ending our function =======")

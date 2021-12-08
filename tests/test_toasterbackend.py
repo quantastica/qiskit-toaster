@@ -1,7 +1,7 @@
 import unittest
 from qiskit import QuantumRegister, ClassicalRegister
-from qiskit import QuantumCircuit, execute, Aer
-from qiskit.compiler import transpile, assemble
+from qiskit import QuantumCircuit, execute
+from qiskit.providers.aer import AerSimulator
 from math import pi
 
 try:
@@ -77,11 +77,13 @@ class TestToasterBackend(common.TestToasterBase):
         Let's first run the aer simulation to get statevector
         and counts so we can compare those results against forest's
         """
+        qc_for_aer = qc.copy()
+        qc_for_aer.save_state()
         stats_aer = TestToasterBackend.execute_and_get_stats(
-            Aer.get_backend("statevector_simulator"), qc, shots
+            AerSimulator(method="statevector"), qc_for_aer, shots
         )
         """
-        Now execute forest backend
+        Now execute toaster backend
         """
         stats = TestToasterBackend.execute_and_get_stats(
             self.toaster_backend(backend_name="statevector_simulator"),
@@ -94,13 +96,6 @@ class TestToasterBackend(common.TestToasterBase):
             len(stats["statevector"]), len(stats_aer["statevector"])
         )
 
-        # From qiskit 0.18.3 there seems to be bug in qiskit
-        # on Mac it returns 8 counts on Linux 4
-        # but for statevector_simulator it should return 1
-        # disabling following tests until that is fixed
-        # self.assertEqual(stats_aer["totalcounts"], 1)
-        # self.assertEqual(len(stats_aer["counts"]),1)
-
         """
         Let's verify that tests are working as expected
         by running fail case
@@ -109,7 +104,7 @@ class TestToasterBackend(common.TestToasterBase):
             self.toaster_backend(), qc, shots
         )
         self.assertTrue(stats["statevector"] is None)
-        self.assertNotEqual(stats["totalcounts"], stats_aer["totalcounts"])
+
 
     def test_multiple_jobs(self):
         qc = self.get_bell_qc()
