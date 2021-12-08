@@ -23,7 +23,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="quantastica-qiskit-toaster",
-    version="0.9.29",
+    version="0.9.30",
     description='Qubit Toaster backend for Qiskit: run Qiskit code on Quantastica "Qubit Toaster" simulator',
     long_description=README,
     long_description_content_type="text/markdown",
