@@ -12,13 +12,17 @@
 # that they have been altered from the originals.
 
 import uuid
+import logging
 from quantastica.qiskit_toaster import ToasterJob
 from quantastica import qconvert
-from qiskit.providers import BaseBackend
+from qiskit.providers import BackendV1
 from qiskit.providers.models import BackendConfiguration
+from qiskit.compiler import assemble
+from qiskit.providers.options import Options
 
+logger = logging.getLogger(__name__)
 
-class ToasterBackend(BaseBackend):
+class ToasterBackend(BackendV1):
 
     DEFAULT_TOASTER_HOST = ToasterJob.ToasterJob.DEFAULT_TOASTER_HOST
     DEFAULT_TOASTER_PORT = ToasterJob.ToasterJob.DEFAULT_TOASTER_PORT
@@ -75,8 +79,38 @@ class ToasterBackend(BaseBackend):
         )
         self._use_cli = use_cli
 
+    def _assemble(self, circuits, parameter_binds=None, **run_options):
+        """Assemble one or more Qobj for running on the simulator"""
+        if parameter_binds:
+            # Handle parameter binding
+            parameterizations = self._convert_binds(circuits, parameter_binds)
+            assemble_binds = []
+            assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
+
+            qobj = assemble(circuits, self, parameter_binds=assemble_binds,
+                            parameterizations=parameterizations)
+        else:
+            qobj = assemble(circuits, self)
+
+        # Add options
+        if self.options:
+            for key, val in self.options.__dict__.items():
+                if val is not None:
+                    setattr(qobj.config, key, val)
+
+        # Override with run-time options
+        for key, val in run_options.items():
+            setattr(qobj.config, key, val)
+
+        return qobj
+
     # @profile
-    def run(self, qobj, backend_options=None):
+    def run(self,
+            circuits,
+            validate=False,
+            parameter_binds=None,
+            **run_options):
+        qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)            
         job_id = str(uuid.uuid4())
         job = ToasterJob.ToasterJob(
             self,
@@ -85,7 +119,7 @@ class ToasterBackend(BaseBackend):
             getstates=self._getstates,
             toaster_host=self._toaster_host,
             toaster_port=self._toaster_port,
-            backend_options=backend_options,
+#            backend_options=backend_options,
             use_cli=self._use_cli,
         )
         job.submit()
@@ -94,6 +128,10 @@ class ToasterBackend(BaseBackend):
     @staticmethod
     def name():
         return "qubit_toaster"
+
+    @classmethod
+    def _default_options(cls):
+        return Options(shots=1024,seed_simulator=None)
 
 
 def get_backend(

@@ -25,7 +25,7 @@ from quantastica.qiskit_toaster import (
     ToasterCliInterface,
 )
 
-from qiskit.providers import BaseJob, JobStatus, JobError
+from qiskit.providers import JobV1, JobStatus, JobError
 from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
@@ -124,7 +124,7 @@ def _run_with_qtoaster_static(
     return result
 
 
-class ToasterJob(BaseJob):
+class ToasterJob(JobV1):
     DEFAULT_TOASTER_HOST = "127.0.0.1"
     DEFAULT_TOASTER_PORT = 8001
     _MINQTOASTERVERSION = "0.9.9"

@@ -24,11 +24,12 @@ jobs:
         ls -l .
         THIS_DIR=`pwd`
         echo "Current dir: $THIS_DIR"
-        echo "::add-path::$THIS_DIR"
+        pwd >> $GITHUB_PATH
       shell: bash
     - name: Echo path
       run: |
         echo "$PATH"
+        cat $GITHUB_PATH
       shell: bash
     - name: Check Toaster
       run: |
@@ -38,7 +39,9 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
-        python-version: '3.x'
+        python-version: '3.9'
+    - name: Upgrade pip
+      run: pip install --upgrade pip
     - name: Cache pip
       uses: actions/cache@v1
       with:
