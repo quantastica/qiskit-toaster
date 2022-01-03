@@ -1,8 +1,6 @@
 # Qubit Toaster backend for Qiskit
 
-Allows running Qiskit code on Qubit Toaster - a high performance quantum circuit simulator.
-
-More goodies at [https://quantastica.com](https://quantastica.com)
+Allows running Qiskit code on [Qubit Toaster](https://quantastica.com/toaster/) - a high performance quantum circuit simulator.
 
 
 # Install
@@ -13,7 +11,10 @@ pip install quantastica-qiskit-toaster
 
 # Usage
 
-Import ToasterBackend into your Qiskit code:
+You need to install and run [Qubit Toaster](https://quantastica.com/toaster/) first. By default, this library expects Toaster running in server mode.
+
+
+Now import ToasterBackend into your Qiskit code:
 
 ```
 from quantastica.qiskit_toaster import ToasterBackend
@@ -25,8 +26,14 @@ Replace `Aer.get_backend` with `ToasterBackend.get_backend`.
 
 ```python
 from qiskit import QuantumRegister, ClassicalRegister
-from qiskit import QuantumCircuit, execute, Aer
+from qiskit import QuantumCircuit, execute
+
+# Instead:
+#from qiskit import Aer
+
+# Do:
 from quantastica.qiskit_toaster import ToasterBackend
+
 
 qc = QuantumCircuit()
 
@@ -49,6 +56,7 @@ qc.measure(q[1], c[1])
 # Use:
 backend = ToasterBackend.get_backend("qasm_simulator")
 
+
 # OR (to use statevector_simulator backend):
 # backend = ToasterBackend.get_backend("statevector_simulator")
 
@@ -66,6 +74,7 @@ backend = ToasterBackend.get_backend("qasm_simulator")
 #            use_cli=True)
 
 job = execute(qc, backend=backend)
+
 # To speed things up a little bit qiskit's optimization can be disabled
 # by setting optimization_level to 0 like following:
 #   job = execute(qc, backend=backend, optimization_level=0)
@@ -96,18 +105,18 @@ ToasterBackend.get_backend( backend_name = None,
 ### Arguments
 
 - `backend_name` can be:
-  - `qasm_simulator` only counts will be returned
+  - `qasm_simulator` only counts will be returned (default)
   - `statevector_simulator` both counts and state vector will be returned
   - If backend name is not provided then it will act as `qasm_simulator`
-- `toaster_host` - ip address of machine running `qubit-toaster` simulator
-- `toaster_port` - port that `qubit-toaster` is listening on
+- `toaster_host` - ip address of machine running `qubit-toaster` simulator (default: 127.0.0.1)
+- `toaster_port` - port that `qubit-toaster` is listening on (default: 8001)
 - `use_cli` - if this param is set to `True` the `qubit-toaster` will be used directly (by invoking it as executable) instead via HTTP API. For this to work the `qubit-toaster` binary must be available somewhere in system PATH
 
 ### Toaster's backend_options
   - `toaster_optimization` - integer from 0 to 7
     - 0 - automatic optimization
     - 1 - optimization is off
-    - 7 - highest optimization
+    - 2..7 - optimization is on. 7 is highest optimization level.
 
 ## Running unit tests
 
@@ -137,5 +146,7 @@ USE_CLI=1 python -m unittest -v -f
 ```
 
 -------
+
+Find more goodies at [https://quantastica.com](https://quantastica.com)
 
 That's it. Enjoy! :)
